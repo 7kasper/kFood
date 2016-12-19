@@ -20,10 +20,10 @@ import org.bukkit.inventory.EquipmentSlot;
  * Class that houses all kFood listeners.
  * @author 7kasper
  */
-public class listeners implements Listener{
+public class Listeners implements Listener{
 	private final kFood plugin;
 	
-	public listeners(kFood Plugin){
+	public Listeners(kFood Plugin){
 		this.plugin = Plugin;
 		return;
 	}
@@ -123,7 +123,7 @@ public class listeners implements Listener{
      * Ensures when a player respawns, their food is updated.
      * @param e
      */
-    @EventHandler (priority = EventPriority.NORMAL)
+    @EventHandler
     public void onPlayerRespawn (PlayerRespawnEvent e){
     	Player p = e.getPlayer();
     	plugin.updateFood(p);
@@ -133,7 +133,7 @@ public class listeners implements Listener{
      * Ensures when a player logs in, their food is updated.
      * @param e
      */
-    @EventHandler (priority = EventPriority.NORMAL)
+    @EventHandler
     public void onPlayerLogin (PlayerLoginEvent e){
     	Player p = e.getPlayer();
     	plugin.updateFood(p);
@@ -143,7 +143,7 @@ public class listeners implements Listener{
      * Ensures when a player's gamemode is changed (to survival or adventure), their food is updated.
      * @param e
      */
-    @EventHandler (priority = EventPriority.NORMAL)
+    @EventHandler
     public void onGamemodeChange (PlayerGameModeChangeEvent e){
     	if(e.getNewGameMode().equals(GameMode.SURVIVAL) || e.getNewGameMode().equals(GameMode.ADVENTURE)){
     		plugin.updateFood(e.getPlayer());
