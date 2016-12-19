@@ -60,10 +60,10 @@ public class kFood extends JavaPlugin{
     	//Prepare reflection for safe item names.
     	prepareReflection();
     	
-		debug("Implementing kFood listners...");
+		debug("Implementing " + pName + " listners...");
     	Bukkit.getPluginManager().registerEvents(new listeners(this), this);
     	
-    	debug("Implementing kFood commands...");
+    	debug("Implementing " + pName + " commands...");
     	commands commands = new commands(this);
     	getCommand(pCommand).setExecutor(commands);
     	getCommand(pCommand).setTabCompleter(commands);
@@ -116,9 +116,8 @@ public class kFood extends JavaPlugin{
     }
     
     /**
-     * Adds health to the player.
-     * Since bukkit doesn't seem to want to give health over the maximum,
-     * a save check is implemented in this function.
+     * Changes the health of a player based on the config.
+     * Damage can be dealt by add negatively.
      * @param p
      * @param healthToAdd
      */
@@ -183,6 +182,7 @@ public class kFood extends JavaPlugin{
         			if(!i.getItemMeta().getDisplayName().contains(ChatColor.RESET + "")){
         				if(detectAnvil){
         					if(revertAnvil){
+        						//TODO: Add a revert when the list doesn't contain the named item. (set in config)
         						return "a_" + ChatColor.stripColor(i.getItemMeta().getDisplayName());
         					}else{
         						ItemMeta iM = i.getItemMeta();
