@@ -9,13 +9,22 @@
 #Run the plugin in debug mode?
 debug: true
 
-#Sets the default food value.
+#Sets the default food value. (1-20)
 #You can affect the diffculty of minecraft a bit here.
-#If set at 0 players will be forced to live with half a heart.
-#If set below 7 players cannot run.
-#If set above 17 players will regenerate health.
+#If set below 7, players cannot run.
+#If set above 17, players will always regenerate health.
 default-food: 6
 #Other plugins, admins or command blocks can change the default-food per player.
+
+#Use potion mechanics for healing? (Regeneration II and Poison II)
+#Usually the plugin just adds hearts or damages the player.
+#When enabled, this option overrides this behaviour to instead
+#just give the player potion effects.
+#This result in the player healing more slowly and thus requiring
+#him to wait before eating again. Players will receive Poison II if
+#a negative value is given, so when true they can't die of eating anymore.
+#Note: This value will override potion-effects.
+potion-mechanics: false
 
 #========Custom Items========#
 #Should the plugin allow custom items (names)?
@@ -26,16 +35,10 @@ detect-anvil: true
 revert-anvil: true
 
 #========Effects========#
-#Use potion effects to make the healing a bit more showfull?
+#Use potion effects to make healing a bit more showfull?
 potion-effects: true 
-#Use potion mechanics for healing? (Regeneration II and Poison II)
-#Usually the plugin just adds hearts or damages the player.
-#When enabled, this option overrides this behaviour to instead
-#just give the player potion effects.
-#This result in the player healing more slowly and thus requiring
-#him to wait before eating again. Players will receive Poison II if
-#a negative value is given, so when true they can't die of eating anymore.
-potion-mechanics: false
+#Should the player burb after eating an instant food?
+burb-effect: true
 
 #========Foods========#
 #Consumables can be added here.

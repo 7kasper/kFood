@@ -4,3 +4,9 @@ basefood
 config
 bukkit
 craftbukkit
+admin
+respawns
+gamemode
+kinda
+plugins
+serverowner

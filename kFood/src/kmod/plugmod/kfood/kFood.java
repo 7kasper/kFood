@@ -21,16 +21,33 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import net.md_5.bungee.api.ChatColor;
 
 public class kFood extends JavaPlugin{
+	//Types of food we have.
+	public enum FoodType {
+		/**
+		 * Something that is eaten slowly: GAP GAP GAP, <em>BURB</em>
+		 */
+		CONSUMABLE,
+		/**
+		 * Something that is eaten instantly on right-click.
+		 */
+		INSTANT,
+		/**
+		 * Something that is neither a food, nor an instant food. 
+		 */
+		NON
+	}
+	
 	//Options, will load from config.yml
 	public boolean DEBUG = false;
 	public int defaultFood = 17;
-	public boolean potionEffects = true;
 	public boolean potionMechanics = false;
+	public boolean potionEffects = true;
+	public boolean burbEffect = true; 
 	public boolean allowCustom = true;
 	public boolean detectAnvil = true;
 	public boolean revertAnvil = true;
-	public Map<String, Double> foods = new HashMap<>();
-	public Map<String, Double> instantFoods = new HashMap<>();
+	private Map<String, Double> foods = new HashMap<>();
+	private Map<String, Double> instantFoods = new HashMap<>();
 	public Double cakeHeal = 2.0;
 	
 	//Plugin values, will load from plugin.yml
@@ -38,7 +55,7 @@ public class kFood extends JavaPlugin{
 	public String pNameSend = "kFood";
 	public String pVersion = "0.0";
 	public String pAuthors = "7kasper";
-	public String pCommand = "kfood";
+	public String pAdminCommand = "kfood";
 	public kFood plugin;
 	
 	//Reflection stuff, will load onEnable()
@@ -48,8 +65,7 @@ public class kFood extends JavaPlugin{
 	private Method craftItemStackGetName = null;
 	
 	//Scoreboard objective, to keep track of per player basefood.
-	private Objective baseFoods = null;
-	private Scoreboard mainScoreboard = null;
+	private Objective foodObjective = null;
 	
 	/**
 	 * Called whenever kFood initializes.
@@ -67,12 +83,12 @@ public class kFood extends JavaPlugin{
     	prepareReflection();
     	
 		debug("Implementing " + pName + " listners...");
-    	Bukkit.getPluginManager().registerEvents(new Listeners(this), this);
+    	Bukkit.getPluginManager().registerEvents(new FoodListeners(this), this);
     	
     	debug("Implementing " + pName + " commands...");
-    	Commands commands = new Commands(this);
-    	getCommand(pCommand).setExecutor(commands);
-    	getCommand(pCommand).setTabCompleter(commands);
+    	AdminCommand adminCommands = new AdminCommand(this);
+    	getCommand(pAdminCommand).setExecutor(adminCommands);
+    	getCommand(pAdminCommand).setTabCompleter(adminCommands);
     	
     	debug("Preparing the baseFood scoreboard...");
     	setupScoreboard();
@@ -102,10 +118,10 @@ public class kFood extends JavaPlugin{
 		debug("Getting main settings...");
 		defaultFood = getConfig().getInt("default-food");
 		debug("defaultFood", Integer.toString(defaultFood));
-		potionEffects = getConfig().getBoolean("potion-effects");
-		debug("potionEffects", Boolean.toString(potionEffects));
 		potionMechanics = getConfig().getBoolean("potion-mechanics");
 		debug("potionMechanics", Boolean.toString(potionMechanics));
+		
+		debug("Getting Custom Item settings...");
 		allowCustom = getConfig().getBoolean("allow-custom");
 		debug("allowCustom", Boolean.toString(allowCustom));
 		detectAnvil = getConfig().getBoolean("detect-anvil");
@@ -113,16 +129,23 @@ public class kFood extends JavaPlugin{
 		revertAnvil = getConfig().getBoolean("revert-anvil");
 		debug("revertAnvil", Boolean.toString(revertAnvil));
 		
+		debug("Getting Effects settings...");
+		potionEffects = getConfig().getBoolean("potion-effects");
+		debug("potionEffects", Boolean.toString(potionEffects));
+		burbEffect = getConfig().getBoolean("burb-effect");
+		debug("burbEffect", Boolean.toString(burbEffect));
+		
 		debug("Loading foods...");
 		getConfig().getConfigurationSection("foods").getValues(false).forEach(
 			(k,v) -> {
-				foods.put(k.toString(), new Double(v.toString()));
+				addFood(k.toString(), FoodType.CONSUMABLE, new Double(v.toString()), false);
 				debug(k.toString(), v.toString());
 			});
+		
 		debug("Loading instant foods...");
 		getConfig().getConfigurationSection("instant-foods").getValues(false).forEach(
 				(k,v) -> {
-					instantFoods.put(k.toString(), new Double(v.toString()));
+					addFood(k.toString(), FoodType.INSTANT, new Double(v.toString()), false);
 					debug(k.toString(), v.toString());
 				});
 		
@@ -138,12 +161,12 @@ public class kFood extends JavaPlugin{
     	pVersion = plugin.getDescription().getVersion();
     	pName = plugin.getDescription().getName();
     	pNameSend = "[" + ChatColor.DARK_RED + pName + ChatColor.RESET + "] ";
-    	pCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
+    	pAdminCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
     	pAuthors = StringUtils.join(plugin.getDescription().getAuthors(), ", ");
     }
     
     /***
-     * Prepare reflection for save item names.
+     * Prepare reflection for safe item names.
      */
     private void prepareReflection(){
     	debug("Preparing reflection...");
@@ -175,7 +198,7 @@ public class kFood extends JavaPlugin{
 	        }
 	        
 		} catch (ClassNotFoundException e) {}
-    	//If there is a method or class not found we just want to quit, because we cannot operate without getting the save item names.
+    	//If there is a method or class not found we just want to quit, because we cannot operate without getting the safe item names.
     	if(craftItemStackAsNMSCopy == null || craftItemStackGetName == null){
     		cm(ChatColor.RED + "Fatal error during reflecting! Are the names of some core classes or methods changed?");
     		Bukkit.getPluginManager().disablePlugin(plugin);
@@ -187,16 +210,16 @@ public class kFood extends JavaPlugin{
      */
     private void setupScoreboard(){
     	ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
-    	mainScoreboard = scoreboardManager.getMainScoreboard();
+    	Scoreboard mainScoreboard = scoreboardManager.getMainScoreboard();
     	for(Objective o : mainScoreboard.getObjectives()){
-    		if(o.getName().matches("baseFood")){
-    			baseFoods = o;
+    		if(o.getName().matches("food")){
+    			foodObjective = o;
     			debug("Dummy objective baseFood found!");
     			return;
     		}
     	}
-    	baseFoods = mainScoreboard.registerNewObjective("baseFood", "dummy");
-    	debug("Created new dummy objective baseFood.");
+    	foodObjective = mainScoreboard.registerNewObjective("food", "dummy");
+    	debug("Created new dummy objective: food.");
     }
     
     //=====================================================\\
@@ -268,12 +291,16 @@ public class kFood extends JavaPlugin{
     //				       API Functions				   \\
     //=====================================================\\
     
+    /*
+     * === Food Level ===
+     */
+    
     /**
      * Updates the player's food level.
      * @param p
      */
     public void updateFood(Player p){
-    	int foodToUpdate = getBaseFood(p);
+    	int foodToUpdate = getFoodLevel(p);
 		if(p.getFoodLevel() != foodToUpdate || p.getSaturation() != foodToUpdate){
 			p.setFoodLevel(foodToUpdate);
 			p.setSaturation(foodToUpdate);
@@ -282,54 +309,53 @@ public class kFood extends JavaPlugin{
     }
     
     /**
-     * Sets the baseFood of a player.
+     * Sets the food of a player.
      * @param p
      * @param baseFood
      */
-    public void setBaseFood (Player p, int baseFood){
+    public void setFoodLevel (Player p, int food){
     	String playerName = p.getName();
-    	baseFoods.getScore(playerName).setScore(baseFood);
-    	debug(playerName + " now has a baseFood of " + baseFood + ".");
-    	updateFood(p);
+    	foodObjective.getScore(playerName).setScore(food);
+    	debug(playerName + " now has a food of " + food + ".");
     }
     
     /***
-     * Sets the player's baseFood to -1 to symbolize default. (Will read as default basefood again).
+     * Resets the player's food to 0 to symbolize the default-food.
      * @param p
      */
-    public void resetBaseFood (Player p){
+    public void resetFoodLevel (Player p){
     	String playerName = p.getName();
-    	if(baseFoods.getScore(playerName) != null){
-    		if(baseFoods.getScore(playerName).getScore() != -1){
-        		baseFoods.getScore(playerName).setScore(-1);
-        		debug(playerName + " now has a baseFood of -1, symbolizes default: " + defaultFood);
-    		}
-    	}
+    	foodObjective.getScore(playerName).setScore(0);
+    	debug(playerName + " now has a food of 0; symbolizes default: " + defaultFood + ".");
     }
     
     /**
-     * Gets the baseFood of a player from the scoreboard.
-     * Marks it with -1 to state: default if no score has been set.
+     * Gets the food of a player from the scoreboard.
+     * Marks it with 0 to symbolize default-food if no score has been set.
      * @param p
      * @return
      */
-    public int getBaseFood (Player p){
+    public int getFoodLevel (Player p){
     	String playerName = p.getName();
-    	if(baseFoods.getScore(playerName) != null){
-    		int baseFood = baseFoods.getScore(playerName).getScore();
-    		if(baseFood != -1){
-    			if(baseFood >= -2 && baseFood <= 20){
-            		return baseFoods.getScore(playerName).getScore();
-    			}else{
-    				cm(ChatColor.RED + "ERROR: " + playerName + " has an illigal score of " + baseFood + ", resetting it to -1!");
-    				baseFoods.getScore(playerName).setScore(-1);
-    			}
-    		}
-    	}else{
-    		baseFoods.getScore(playerName).setScore(-1);
-    	}
-    	return plugin.defaultFood;
+    	int food = foodObjective.getScore(playerName).getScore();
+    	
+    	//Since commandBlocks or other plugins may use the scoreboard to alter this at any time, check for faults.
+		if(food < 0 || food > 20){
+			cm(ChatColor.RED + "ERROR: " + playerName + " has an illigal food of " + food + ", resetting it to 0...");
+			resetFoodLevel(p);
+			food = foodObjective.getScore(playerName).getScore();
+		}
+		
+		//The 0 symbolizes the defaultFood.
+		if(food == 0){
+			return plugin.defaultFood;
+		}
+    	return foodObjective.getScore(playerName).getScore();
     }
+    
+    /*
+     * === Giving / Taking Health ===
+     */
     
     /**
      * Changes the health of a player with effect based on the config.
@@ -378,7 +404,7 @@ public class kFood extends JavaPlugin{
      */
     public void damagePlayer(Player p, Double damage){
 		if(!potionMechanics){
-			//Poison I is applied just long enough for the awfull effect.
+			//Poison I is applied just long enough for the awful effect.
 	    	if(potionEffects) p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20, 0));
 	    	//Damage the player.
 	    	p.damage(damage);
@@ -391,26 +417,146 @@ public class kFood extends JavaPlugin{
 		}
     }
     
+    /*
+     * === Foods ===
+     */
+    
+    /**
+     * Gets foodType based on a (safe) ItemName.
+     * @param name
+     * @return
+     */
+    public FoodType getFoodType (String name){
+    	if(foods.containsKey(name)) return FoodType.CONSUMABLE;
+    	if(instantFoods.containsKey(name)) return FoodType.INSTANT;
+    	return FoodType.NON;
+    }
+    
+    /**
+     * Gets foodType based on an ItemStack.
+     * @param i
+     * @return
+     */
+    public FoodType getFoodType (ItemStack i){
+    	return getFoodType(getSafeName(i));
+    }
+    
+    /***
+     * Gets the worth of a food based on a (safe) ItemName and FoodType.
+     * @param name
+     * @param type
+     * @return
+     */
+    public Double getFoodWorth (String name, FoodType type){
+    	if(type == FoodType.CONSUMABLE) return foods.get(name);
+    	if(type == FoodType.INSTANT) return instantFoods.get(name);
+    	return 0.0;
+    }
+    
+    /***
+     * Gets the worth of a food based on an ItemStack and FoodType.
+     * @param i
+     * @param type
+     * @return
+     */
+    public Double getFoodWorth (ItemStack i, FoodType type){
+    	return getFoodWorth (getSafeName(i), type);
+    }
+    
+    /***
+     * Gets the worth of a food based on a (safe) ItemName.
+     * @param name
+     * @return
+     */
+    public Double getFoodWorth (String name){
+    	return getFoodWorth(name, getFoodType(name));
+    }
+    
+    /***
+     * Gets the worth of a food based on a ItemStack.
+     * @param i
+     * @return
+     */
+    public Double getFoodWorth (ItemStack i){
+    	return getFoodWorth(getSafeName(i));
+    }
+    
+    /**
+     * Adds a new food using a (safe) name.<br>
+     * <br>
+     * If you want to register a new food,
+     * it's better to check if getFoodType != FoodType.NON in onEnable()
+     * and call this function using appendToConfig = true,
+     * so the food is saved on file and can be edited by the serverowner. <br>
+     * <br>
+     * If you want to forcefully decide the halfHeartsToHeal you need to call this function every time in onEnable()
+     * using appendToConfig = false.
+     * @param name
+     * @param halfHeartsToHeal
+     * @param appendToConfig
+     * @return
+     */
+    //TODO: Add the append to config functionality.
+    public boolean addFood (String name, FoodType foodType, Double halfHeartsToHeal, boolean appendToConfig){
+    	//If the food isn't already here...
+    	if(getFoodType(name) == FoodType.NON){
+    		if(foodType == FoodType.CONSUMABLE){
+    			foods.put(name, halfHeartsToHeal);
+    		}
+        	if(foodType == FoodType.INSTANT){
+        		instantFoods.put(name, halfHeartsToHeal);
+        	}
+    	}
+    	return false;
+    }
+    
+    /**
+     * Adds a new food using an ItemStack. <br>
+     * <br>
+     * If you want to register a new food,
+     * it's better to check if getFoodType != FoodType.NON in onEnable()
+     * and call this function using appendToConfig = true,
+     * so the food is saved on file and can be edited by the serverowner. <br>
+     * <br>
+     * If you want to forcefully decide the halfHeartsToHeal you need to call this function every time in onEnable()
+     * using appendToConfig = false.
+     * @param i
+     * @param halfHeartsToHeal
+     * @param appendToConfig
+     * @return
+     */
+    //TODO: Add the append to config functionality.
+    public boolean addFood (ItemStack i, FoodType foodType, Double halfHeartsToHeal, boolean appendToConfig){
+    	return addFood(getSafeName(i), foodType, halfHeartsToHeal, appendToConfig);
+    }
+    
+    /*
+     * === MISC ===
+     */
+    
     /**
      * Gets the Item's display name safely with behavior based on config.
      * @param i
      * @return
      */
-    public String getSaveName (ItemStack i){
+    public String getSafeName (ItemStack i){
     	if(allowCustom){
         	if(i.hasItemMeta()){
         		if(i.getItemMeta().hasDisplayName()){
+        			debug("Custom item detected!");
         			if(!i.getItemMeta().getDisplayName().contains(ChatColor.RESET + "")){
         				if(detectAnvil){
+        					debug("Is anvil-item!");
+        					String anvilName = "a_" + ChatColor.stripColor(i.getItemMeta().getDisplayName());
+        					//If a player names an item and its not on our list, we still want to check against the name of the original item name.
         					if(revertAnvil){
-        						//TODO: Add a revert when the list doesn't contain the named item. (set in config)
-        						return "a_" + ChatColor.stripColor(i.getItemMeta().getDisplayName());
-        					}else{
-        						ItemMeta iM = i.getItemMeta();
-        						iM.setDisplayName("");
-        						i.setItemMeta(iM);
-        						return craftDisplayName(i);
+        						if(getFoodType(anvilName) == FoodType.NON){
+        							String originalName = getOriginalItemName(i);
+        							debug("Anvil-item " + anvilName + " wasn't in the list, reverting back to " + originalName + ".");
+        							return originalName;
+        						}
         					}
+    						return anvilName;
         				}
         			}
         			return ChatColor.stripColor(i.getItemMeta().getDisplayName());
@@ -418,6 +564,18 @@ public class kFood extends JavaPlugin{
         	}
     	}
     	return craftDisplayName(i);
-    }  
-
+    }
+    
+    /**
+     * Gets the ItemName of i before it was renamed.
+     * @param i
+     * @return
+     */
+    public String getOriginalItemName (ItemStack i){
+		ItemStack copy = i;
+		ItemMeta copyMeta = copy.getItemMeta();
+		copyMeta.setDisplayName("");
+		copy.setItemMeta(copyMeta);
+		return craftDisplayName(copy);
+    }
 }
