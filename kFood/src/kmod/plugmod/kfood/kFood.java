@@ -2,7 +2,9 @@ package kmod.plugmod.kfood;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -21,22 +23,6 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import net.md_5.bungee.api.ChatColor;
 
 public class kFood extends JavaPlugin{
-	//Types of food we have.
-	public enum FoodType {
-		/**
-		 * Something that is eaten slowly: GAP GAP GAP, <em>BURB</em>
-		 */
-		CONSUMABLE,
-		/**
-		 * Something that is eaten instantly on right-click.
-		 */
-		INSTANT,
-		/**
-		 * Something that is neither a food, nor an instant food. 
-		 */
-		NON
-	}
-	
 	//Options, will load from config.yml
 	public boolean DEBUG = false;
 	public int defaultFood = 17;
@@ -46,8 +32,8 @@ public class kFood extends JavaPlugin{
 	public boolean allowCustom = true;
 	public boolean detectAnvil = true;
 	public boolean revertAnvil = true;
-	private Map<String, Double> foods = new HashMap<>();
-	private Map<String, Double> instantFoods = new HashMap<>();
+	public Map<String, Double> foods = new HashMap<>();
+	public Map<String, Double> instantFoods = new HashMap<>();
 	public Double cakeHeal = 2.0;
 	
 	//Plugin values, will load from plugin.yml
@@ -78,7 +64,7 @@ public class kFood extends JavaPlugin{
     	//Get some data from the plugin.yml
     	loadPluginValues();
     	//Load in the config.yml and its values.
-    	loadConfig();
+    	loadFromConfig();
     	//Prepare reflection for safe item names.
     	prepareReflection();
     	
@@ -108,7 +94,7 @@ public class kFood extends JavaPlugin{
     /***
      * (re)load config file.
      */
-    public void loadConfig(){
+    public void loadFromConfig(){
 		//Load the config file and all the values.
     	saveDefaultConfig();
     	reloadConfig();
@@ -138,20 +124,34 @@ public class kFood extends JavaPlugin{
 		debug("Loading foods...");
 		getConfig().getConfigurationSection("foods").getValues(false).forEach(
 			(k,v) -> {
-				addFood(k.toString(), FoodType.CONSUMABLE, new Double(v.toString()), false);
+				addFood(k.toString(), FoodType.CONSUMABLE, new Double(v.toString()));
 				debug(k.toString(), v.toString());
 			});
 		
 		debug("Loading instant foods...");
 		getConfig().getConfigurationSection("instant-foods").getValues(false).forEach(
 				(k,v) -> {
-					addFood(k.toString(), FoodType.INSTANT, new Double(v.toString()), false);
+					addFood(k.toString(), FoodType.INSTANT, new Double(v.toString()));
 					debug(k.toString(), v.toString());
 				});
 		
 		debug("Getting Misc values...");
 		cakeHeal = getConfig().getDouble("cake");
 		debug("cakeHeal", cakeHeal.toString());
+    }
+    
+    /**
+     * Flushes the foods and values in memory to the config.yml.
+     */
+    public void saveToConfig(){
+    	debug("Saving foods to file...");
+    	//We don't need to do casting here, yay!
+    	getConfig().createSection("foods", foods);
+    	debug("Consumable foods set.");
+    	getConfig().createSection("instant-foods", instantFoods);
+    	debug("instantFoods saved.");
+    	saveConfig();
+    	debug("Config saved!");
     }
     
     /**
@@ -292,6 +292,64 @@ public class kFood extends JavaPlugin{
     //=====================================================\\
     
     /*
+     * === MISC ===
+     */
+    
+    /**
+     * Crude (java 8) function to get a string List of the names in an Enum.
+     * @param e
+     * @return
+     */
+    public List<String> enumNameList(Class<? extends Enum<?>> e) {
+        return Arrays.asList(Arrays.stream(e.getEnumConstants()).map(Enum::name).toArray(String[]::new));
+    }
+    
+    /**
+     * Gets the Item's display name safely with behavior based on config.
+     * @param i
+     * @return the ItemName 
+     */
+    public String getSafeFoodName (ItemStack i){
+    	if(allowCustom){
+        	if(i.hasItemMeta()){
+        		if(i.getItemMeta().hasDisplayName()){
+        			debug("Custom item detected!");
+        			if(!i.getItemMeta().getDisplayName().contains(ChatColor.RESET + "")){
+        				if(detectAnvil){
+        					debug("Is anvil-item!");
+        					String anvilName = "a_" + ChatColor.stripColor(i.getItemMeta().getDisplayName());
+        					//If a player names an item and its not on our list, we still want to check against the name of the original item name.
+        					if(revertAnvil){
+        						if(getFoodType(anvilName) == FoodType.NON){
+        							String originalName = getOriginalItemName(i);
+        							debug("Anvil-item " + anvilName + " wasn't in the list, reverting back to " + originalName + ".");
+        							return originalName;
+        						}
+        					}
+    						return anvilName;
+        				}
+        			}
+        			return ChatColor.stripColor(i.getItemMeta().getDisplayName());
+        		}
+        	}
+    	}
+    	return craftDisplayName(i);
+    }
+    
+    /**
+     * Gets the ItemName of i before it was renamed.
+     * @param i
+     * @return the original itemName.
+     */
+    public String getOriginalItemName (ItemStack i){
+		ItemStack copy = i;
+		ItemMeta copyMeta = copy.getItemMeta();
+		copyMeta.setDisplayName("");
+		copy.setItemMeta(copyMeta);
+		return craftDisplayName(copy);
+    }
+    
+    /*
      * === Food Level ===
      */
     
@@ -299,7 +357,7 @@ public class kFood extends JavaPlugin{
      * Updates the player's food level.
      * @param p
      */
-    public void updateFood(Player p){
+    public void updateFoodLevel(Player p){
     	int foodToUpdate = getFoodLevel(p);
 		if(p.getFoodLevel() != foodToUpdate || p.getSaturation() != foodToUpdate){
 			p.setFoodLevel(foodToUpdate);
@@ -333,7 +391,7 @@ public class kFood extends JavaPlugin{
      * Gets the food of a player from the scoreboard.
      * Marks it with 0 to symbolize default-food if no score has been set.
      * @param p
-     * @return
+     * @return the foodLevel of a player.
      */
     public int getFoodLevel (Player p){
     	String playerName = p.getName();
@@ -372,7 +430,7 @@ public class kFood extends JavaPlugin{
     	}
     }
     
-    /***
+    /**
      * Heals a player with effect based on the config. 
      * @param p
      * @param toHeal
@@ -401,6 +459,8 @@ public class kFood extends JavaPlugin{
     
     /**
      * Damages a player with effect based on config.
+     * @param p
+     * @param damage
      */
     public void damagePlayer(Player p, Double damage){
 		if(!potionMechanics){
@@ -424,7 +484,7 @@ public class kFood extends JavaPlugin{
     /**
      * Gets foodType based on a (safe) ItemName.
      * @param name
-     * @return
+     * @return the food type of a certain food.
      */
     public FoodType getFoodType (String name){
     	if(foods.containsKey(name)) return FoodType.CONSUMABLE;
@@ -435,17 +495,17 @@ public class kFood extends JavaPlugin{
     /**
      * Gets foodType based on an ItemStack.
      * @param i
-     * @return
+     * @return the food type of a certain food.
      */
     public FoodType getFoodType (ItemStack i){
-    	return getFoodType(getSafeName(i));
+    	return getFoodType(getSafeFoodName(i));
     }
     
     /***
      * Gets the worth of a food based on a (safe) ItemName and FoodType.
      * @param name
      * @param type
-     * @return
+     * @return the halfHeartsToHeal of a certain food.
      */
     public Double getFoodWorth (String name, FoodType type){
     	if(type == FoodType.CONSUMABLE) return foods.get(name);
@@ -457,16 +517,16 @@ public class kFood extends JavaPlugin{
      * Gets the worth of a food based on an ItemStack and FoodType.
      * @param i
      * @param type
-     * @return
+     * @return the halfHeartToHeal of a certain food.
      */
     public Double getFoodWorth (ItemStack i, FoodType type){
-    	return getFoodWorth (getSafeName(i), type);
+    	return getFoodWorth (getSafeFoodName(i), type);
     }
     
     /***
      * Gets the worth of a food based on a (safe) ItemName.
      * @param name
-     * @return
+     * @return the halfHeartsToHeal of a certain food.
      */
     public Double getFoodWorth (String name){
     	return getFoodWorth(name, getFoodType(name));
@@ -475,36 +535,37 @@ public class kFood extends JavaPlugin{
     /***
      * Gets the worth of a food based on a ItemStack.
      * @param i
-     * @return
+     * @return the halfHeartsToHeal of a certain food.
      */
     public Double getFoodWorth (ItemStack i){
-    	return getFoodWorth(getSafeName(i));
+    	return getFoodWorth(getSafeFoodName(i));
     }
     
     /**
      * Adds a new food using a (safe) name.<br>
      * <br>
      * If you want to register a new food,
-     * it's better to check if getFoodType != FoodType.NON in onEnable()
-     * and call this function using appendToConfig = true,
+     * it's better to check if getFoodType == FoodType.NON in onEnable()
+     * and call the saveConfig function.
      * so the food is saved on file and can be edited by the serverowner. <br>
      * <br>
-     * If you want to forcefully decide the halfHeartsToHeal you need to call this function every time in onEnable()
+     * If you want to forcefully decide the halfHeartsToHeal or foodType you need to call this function every time in when your plugin is enabled.
      * using appendToConfig = false.
      * @param name
      * @param halfHeartsToHeal
      * @param appendToConfig
-     * @return
+     * @return if the operation was successful.
      */
-    //TODO: Add the append to config functionality.
-    public boolean addFood (String name, FoodType foodType, Double halfHeartsToHeal, boolean appendToConfig){
+    public boolean addFood (String name, FoodType foodType, Double halfHeartsToHeal){
     	//If the food isn't already here...
     	if(getFoodType(name) == FoodType.NON){
     		if(foodType == FoodType.CONSUMABLE){
     			foods.put(name, halfHeartsToHeal);
+    			return true;
     		}
         	if(foodType == FoodType.INSTANT){
         		instantFoods.put(name, halfHeartsToHeal);
+        		return true;
         	}
     	}
     	return false;
@@ -514,68 +575,57 @@ public class kFood extends JavaPlugin{
      * Adds a new food using an ItemStack. <br>
      * <br>
      * If you want to register a new food,
-     * it's better to check if getFoodType != FoodType.NON in onEnable()
-     * and call this function using appendToConfig = true,
+     * it's better to check if getFoodType == FoodType.NON in onEnable()
+     * and call {@link saveFoodsToConfig()},
      * so the food is saved on file and can be edited by the serverowner. <br>
      * <br>
-     * If you want to forcefully decide the halfHeartsToHeal you need to call this function every time in onEnable()
+     * If you want to forcefully decide the halfHeartsToHeal you need to call this function every time in when your plugin is enabled.
      * using appendToConfig = false.
      * @param i
      * @param halfHeartsToHeal
      * @param appendToConfig
-     * @return
+     * @return if the operation was successful.
      */
-    //TODO: Add the append to config functionality.
-    public boolean addFood (ItemStack i, FoodType foodType, Double halfHeartsToHeal, boolean appendToConfig){
-    	return addFood(getSafeName(i), foodType, halfHeartsToHeal, appendToConfig);
+    public boolean addFood (ItemStack i, FoodType foodType, Double halfHeartsToHeal){
+    	return addFood(getSafeFoodName(i), foodType, halfHeartsToHeal);
     }
     
-    /*
-     * === MISC ===
-     */
-    
     /**
-     * Gets the Item's display name safely with behavior based on config.
+     * Sets the value of a food using a (safe) name. <br>
+     * <br>
+     * If you want this value to stick (save to config), be sure to also call
+     * {@link saveFoodsToConfig()}.
      * @param i
-     * @return
+     * @param foodType
+     * @param halfHeartsToHeal
+     * @return if the operation was successful.
      */
-    public String getSafeName (ItemStack i){
-    	if(allowCustom){
-        	if(i.hasItemMeta()){
-        		if(i.getItemMeta().hasDisplayName()){
-        			debug("Custom item detected!");
-        			if(!i.getItemMeta().getDisplayName().contains(ChatColor.RESET + "")){
-        				if(detectAnvil){
-        					debug("Is anvil-item!");
-        					String anvilName = "a_" + ChatColor.stripColor(i.getItemMeta().getDisplayName());
-        					//If a player names an item and its not on our list, we still want to check against the name of the original item name.
-        					if(revertAnvil){
-        						if(getFoodType(anvilName) == FoodType.NON){
-        							String originalName = getOriginalItemName(i);
-        							debug("Anvil-item " + anvilName + " wasn't in the list, reverting back to " + originalName + ".");
-        							return originalName;
-        						}
-        					}
-    						return anvilName;
-        				}
-        			}
-        			return ChatColor.stripColor(i.getItemMeta().getDisplayName());
-        		}
-        	}
+    public boolean setFood (String name, Double halfHeartsToHeal){
+    	if(getFoodType(name) == FoodType.CONSUMABLE){
+    		foods.replace(name, halfHeartsToHeal);
+    		return true;
     	}
-    	return craftDisplayName(i);
+    	if(getFoodType(name) == FoodType.INSTANT){
+    		instantFoods.replace(name, halfHeartsToHeal);
+    		return true;
+    	}
+    	return false;
     }
     
     /**
-     * Gets the ItemName of i before it was renamed.
+     * Sets the value of a food using an ItemStack. <br>
+     * <br>
+     * If you want this value to stick (save to config), be sure to also call
+     * {@link saveFoodsToConfig()}.
      * @param i
-     * @return
+     * @param foodType
+     * @param halfHeartsToHeal
+     * @return if the operation was successful.
      */
-    public String getOriginalItemName (ItemStack i){
-		ItemStack copy = i;
-		ItemMeta copyMeta = copy.getItemMeta();
-		copyMeta.setDisplayName("");
-		copy.setItemMeta(copyMeta);
-		return craftDisplayName(copy);
+    public boolean setFood (ItemStack i, Double halfHeartsToHeal){
+    	return setFood(getSafeFoodName(i), halfHeartsToHeal);
     }
+    
+    
+    
 }

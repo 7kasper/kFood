@@ -7,7 +7,7 @@
 #If this plugin helps you out, consider giving some credit ingame.
 name: kFood
 main: kmod.plugmod.kfood.kFood
-version: 0.6
+version: 0.7
 author: 7kasper
 commands:
  kfood:

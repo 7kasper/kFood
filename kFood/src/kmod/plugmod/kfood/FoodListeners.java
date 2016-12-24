@@ -18,8 +18,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-import kmod.plugmod.kfood.kFood.FoodType;
-
 /***
  * Class that houses all kFood listeners.
  * @author 7kasper
@@ -44,7 +42,7 @@ public class FoodListeners implements Listener{
    public void onItemConsume(PlayerItemConsumeEvent e){
 	   Player p = e.getPlayer();
 	   if(!e.isCancelled()){
-		   String eatName = plugin.getSafeName(e.getItem());
+		   String eatName = plugin.getSafeFoodName(e.getItem());
 		   //Bukkit is a bit weird and doesn't apply health when it goes over the top.
 		   if(plugin.getFoodType(eatName) == FoodType.CONSUMABLE){
 			   Double foodToAdd = plugin.getFoodWorth(eatName, FoodType.CONSUMABLE);
@@ -68,7 +66,7 @@ public class FoodListeners implements Listener{
 	    */
 	   if(e.getAction().equals(Action.RIGHT_CLICK_AIR) || e.getAction().equals(Action.RIGHT_CLICK_BLOCK)){
 		   if(e.getItem() != null){
-			   String eatName = plugin.getSafeName(e.getItem());
+			   String eatName = plugin.getSafeFoodName(e.getItem());
 			   if(plugin.getFoodType(eatName) == FoodType.INSTANT){
 				   //We don't want other right click things to happen, so stop!
 				   e.setCancelled(true);
@@ -123,7 +121,7 @@ public class FoodListeners implements Listener{
     		Player p = (Player)e.getEntity();
         	//F*ck hunger, disable from the getgo.
         	e.setCancelled(true);
-    		plugin.updateFood(p);
+    		plugin.updateFoodLevel(p);
     	}
     }
     
@@ -140,7 +138,7 @@ public class FoodListeners implements Listener{
     	Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
 			@Override
 			public void run() {
-				plugin.updateFood(p);		
+				plugin.updateFoodLevel(p);		
 			}
     	}, 1L);
     }
@@ -153,7 +151,7 @@ public class FoodListeners implements Listener{
     public void onPlayerJoin (PlayerJoinEvent e){
     	Player p = e.getPlayer();
     	plugin.debug(p.getName() + " logged on, resetting the food.");
-    	plugin.updateFood(p);
+    	plugin.updateFoodLevel(p);
     }
     
     /***
@@ -165,7 +163,7 @@ public class FoodListeners implements Listener{
     	Player p = e.getPlayer();
     	if(e.getNewGameMode().equals(GameMode.SURVIVAL) || e.getNewGameMode().equals(GameMode.ADVENTURE)){
     		plugin.debug(p.getName() + " changed into survival, resetting the food.");
-    		plugin.updateFood(p);
+    		plugin.updateFoodLevel(p);
     	}
     }
 }

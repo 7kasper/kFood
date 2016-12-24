@@ -10,3 +10,5 @@ gamemode
 kinda
 plugins
 serverowner
+yay
+enum
