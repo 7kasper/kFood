@@ -1,0 +1,110 @@
+#========kFood========#
+#Main config file of kFood.
+#
+#Values and extras can be
+#changed in this config.
+#=====================#
+
+#========MAIN========#
+#Run the plugin in debug mode?
+debug: true
+
+#Sets the default food value. (1-20)
+#You can affect the diffculty of minecraft a bit here.
+#If set below 7, players cannot run.
+#If set above 17, players will always regenerate health.
+default-food: 6
+#Other plugins, admins or command blocks can change the default-food per player.
+
+#Use potion mechanics for healing? (Regeneration II and Poison II)
+#Usually the plugin just adds hearts or damages the player.
+#When enabled, this option overrides this behaviour to instead
+#just give the player potion effects.
+#This result in the player healing more slowly and thus requiring
+#him to wait before eating again. Players will receive Poison II if
+#a negative value is given, so when true they can't die of eating anymore.
+#Note: This value will override potion-effects.
+potion-mechanics: false
+
+#========Custom Items========#
+#Should the plugin allow custom items (names)?
+allow-custom: true
+#Detect if a custom name came from an anvil? If set to true anvil items can be set using a_itemName.
+detect-anvil: true
+#When someone renamed their food in an anvil and no a_itemName is present below, revert back to the orginal item name?
+revert-anvil: true
+
+#========Effects========#
+#Use potion effects to make healing a bit more showfull?
+potion-effects: true 
+#Should the player burb after eating an instant food?
+burb-effect: true
+
+#========Foods========#
+#Consumables can be added here.
+#Usage: 
+# name: halfheartstoheal
+#
+#Supports custom items! (When allow-custom: true)
+#Make sure that your custom item's name contains ChatColor.RESET to disable the italic text
+#and ensure kFood doesn't see the item as being named by an anvil.
+#
+#Anvil items (when detect-anvil: true) can be added in aswell.
+#Usage:
+# a_name: halfhearts to heal.
+foods:
+ apple: 2.0
+ baked_potato: 3.0
+ beetroot: 1.0
+ beetroot_soup: 6.0
+ bread: 3.0
+ carrot_item: 2.0
+ cooked_chicken: 5.0
+ cooked_fish: 5.0
+ cooked_mutton: 6.0
+ cooked_beef: 9.0
+ cooked_rabbit: 6.0
+ cookie: 2.0
+ Golden Apple: 4.0
+ grilled_pork: 9.0
+ melon: 1.0
+ mushroom_soup: 6.0
+ mutton: 2.0
+ poisonous_potato: 2.0
+ potato_item: 1.0
+ pork: 3.0
+ pumpkin_pie: 8.0
+ rabbit_stew: 9.0
+ Raw Beef: 3.0
+ raw_chicken: -2.0
+ raw_fish: 2.0
+ rabbit_foot: 2.0
+ rotten_flesh: -1.0
+ spider_eye: -1.0
+ 
+#Custom item examples:
+#Let's say a different plugin adds in the recipe for a sandwich,
+#the display name of this item is "Sandwich". We want the player to receive 3 harts.
+# Sandwich: 6.0
+#
+#When you put a piece of bread in a anvil and try to give it the name Sandwich,
+#it obviously isn't the real thing. We want the player be punished if he eats the fake sandwich.
+# a_Sandwich: -5.0
+
+#========Instant Foods========#
+#Foods that can be eaten instantly.
+#Usage:
+# name: halfheartstoheal
+#
+#Supports same behaviour as the regular foods.
+#If you want every food to be eaten instantly, cut the contents
+#from the foods: catagory and paste them here.
+#
+#Unlike foods:, instant-foods support non-consumable items.
+instant-foods:
+ Sugar: 1.0
+
+#========Misc========#
+#The cake is a speciality and handled a bit differently.
+#This value corresponds to the halfhearts healed for each slice. (note: A cake has seven slices)
+cake: 2.0

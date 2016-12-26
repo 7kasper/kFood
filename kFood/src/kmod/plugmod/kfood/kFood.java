@@ -150,7 +150,7 @@ public class kFood extends JavaPlugin{
     	debug("Consumable foods set.");
     	getConfig().createSection("instant-foods", instantFoods);
     	debug("instantFoods saved.");
-    	saveConfig();
+    	//TODO HEEah..
     	debug("Config saved!");
     }
     

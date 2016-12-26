@@ -1,0 +1,16 @@
+#========kFood========#
+#       7kasper       #
+#========kFood========#
+
+#You can edit all of this to give the plugin a different name, command, etc,
+#just make sure the syntax stays the same.
+#If this plugin helps you out, consider giving some credit ingame.
+name: kFood
+main: kmod.plugmod.kfood.kFood
+version: 0.7
+author: 7kasper
+commands:
+ kfood:
+   description: Used for managing kFood.
+   permission: kFood.admin
+   permission-message: You are not allowed to do that!
