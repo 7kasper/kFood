@@ -25,6 +25,10 @@ import org.bukkit.inventory.EquipmentSlot;
 public class FoodListeners implements Listener{
 	private final kFood plugin;
 	
+	/**
+	 * Instantiates a new FoodListeners class using our main class for all extra functions.
+	 * @param Plugin
+	 */
 	public FoodListeners(kFood Plugin){
 		this.plugin = Plugin;
 		return;
@@ -55,12 +59,13 @@ public class FoodListeners implements Listener{
    }
    
    /**
-    * We also want to handle cakes.
+    * We also want to handle instantFoods and cakes.
     * @param e
     */
    @EventHandler (priority = EventPriority.HIGH)
    public void onPlayerInteract(PlayerInteractEvent e){
    Player p = e.getPlayer();
+   
 	   /*
 	    * Handles the instant eating on right-click.
 	    */
@@ -72,14 +77,17 @@ public class FoodListeners implements Listener{
 				   e.setCancelled(true);
 				   //Takes one of the stack away, otherwise completely destroys the stack.
 				   if(e.getItem().getAmount() > 1){
-					   e.getItem().setAmount(e.getItem().getAmount() -1);
+					   if (plugin.returnsBowl(eatName)) p.getInventory().addItem(plugin.bowl());
+					   e.getItem().setAmount(e.getItem().getAmount() - 1);
 				   }else{
 					   //When e.getHand() is set to EquipmentSlot.HAND it's in the main hand.
 					   if(e.getHand().equals(EquipmentSlot.HAND)){
-						   e.getPlayer().getInventory().setItemInMainHand(null);
+						   if(plugin.returnsBowl(eatName)) p.getInventory().setItemInMainHand(plugin.bowl());
+						   else p.getInventory().setItemInMainHand(null);
 						   plugin.debug(p.getName() + " instantly ate " + eatName + " from his main hand.");
 					   }else if(e.getHand().equals(EquipmentSlot.OFF_HAND)){
-						   e.getPlayer().getInventory().setItemInOffHand(null);
+						   if(plugin.returnsBowl(eatName)) p.getInventory().setItemInOffHand(plugin.bowl());
+						   else p.getInventory().setItemInOffHand(null);
 						   plugin.debug(p.getName() + " instantly ate " + eatName + " from his off hand.");
 					   }
 				   }
@@ -109,7 +117,6 @@ public class FoodListeners implements Listener{
    //=====================================================\\
    //                    Stopping Food                    \\
    //=====================================================\\
-    
    
     /***
      * Forcefully disables the food event and makes sure that food levels stay the same.

@@ -5,6 +5,9 @@
 #changed in this config.
 #=====================#
 
+#NOTE: Many options are based on names wich are based on your server's locale.
+#If you change the language on your server, be sure to update all names in this config aswell!
+
 #========MAIN========#
 #Run the plugin in debug mode?
 debug: true
@@ -108,3 +111,9 @@ instant-foods:
 #The cake is a speciality and handled a bit differently.
 #This value corresponds to the halfhearts healed for each slice. (note: A cake has seven slices)
 cake: 2.0
+
+#When an instant-food is eaten that contains one of these strings, a bowl is returned.
+#To disable simply remove all entries. (But leave return-bowl: intact!)
+return-bowl:
+ - Stew
+ - Soup

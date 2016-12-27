@@ -2,13 +2,21 @@ package kmod.plugmod.kfood;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -20,9 +28,18 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 
-import net.md_5.bungee.api.ChatColor;
-
+/**
+ * Main class of kFood, extends JavaPlugin.
+ * Houses all API functions.
+ * @author 7kasper
+ *
+ */
 public class kFood extends JavaPlugin{
+	
+    //=====================================================\\
+    //						Variables					   \\
+    //=====================================================\\
+	
 	//Options, will load from config.yml
 	public boolean DEBUG = false;
 	public int defaultFood = 17;
@@ -35,13 +52,17 @@ public class kFood extends JavaPlugin{
 	public Map<String, Double> foods = new HashMap<>();
 	public Map<String, Double> instantFoods = new HashMap<>();
 	public Double cakeHeal = 2.0;
+	public List<String> returnBowl = new ArrayList<>();
 	
 	//Plugin values, will load from plugin.yml
-	public String pName = "kFood";
-	public String pNameSend = "kFood";
-	public String pVersion = "0.0";
-	public String pAuthors = "7kasper";
-	public String pAdminCommand = "kfood";
+	public String pName = "";
+	public String pNameSend = "";
+	public String pVersion = "";
+	public String pAuthors = "";
+	public List<String> pCommands = new ArrayList<>();
+	public String pAdminCommand = "";
+	public String pFoodCommand = "";
+	public String pFoodsCommand = "";
 	public kFood plugin;
 	
 	//Reflection stuff, will load onEnable()
@@ -53,6 +74,10 @@ public class kFood extends JavaPlugin{
 	//Scoreboard objective, to keep track of per player basefood.
 	private Objective foodObjective = null;
 	
+    //=====================================================\\
+    //				    Plugin Functions				   \\
+    //=====================================================\\
+	
 	/**
 	 * Called whenever kFood initializes.
 	 */
@@ -62,26 +87,56 @@ public class kFood extends JavaPlugin{
     	plugin = this;
     	
     	//Get some data from the plugin.yml
-    	loadPluginValues();
+    	if(!loadPluginValues()){
+    		cm(ChatColor.RED + "Fatal error reading from plugin.yml! Please reinstall the plugin.");
+    		Bukkit.getPluginManager().disablePlugin(plugin);
+    		return;
+    	};
     	//Load in the config.yml and its values.
-    	loadFromConfig();
+    	if(!loadFromConfig()){
+    		cm(ChatColor.RED + "Fatal error reading config.yml! Please run in debug and check the config for anomalies.");
+    		Bukkit.getPluginManager().disablePlugin(plugin);
+    		return;
+    	};
     	//Prepare reflection for safe item names.
-    	prepareReflection();
+    	if(!prepareReflection()){
+    		cm(ChatColor.RED + "Fatal error during reflecting! Are the names of some core classes or methods changed?");
+    		Bukkit.getPluginManager().disablePlugin(plugin);
+    		return;
+    	};
+    	//Setup the foods Scoreboard.
+    	if(!setupScoreboard()){
+    		cm(ChatColor.RED + "Fatal error when setting up scoreboard. Are any other plugins messing with the foods objective?");
+    		Bukkit.getPluginManager().disablePlugin(plugin);
+    		return;
+    	}
     	
-		debug("Implementing " + pName + " listners...");
+		debug("Implementing FoodListners...");
     	Bukkit.getPluginManager().registerEvents(new FoodListeners(this), this);
     	
-    	debug("Implementing " + pName + " commands...");
-    	AdminCommand adminCommands = new AdminCommand(this);
-    	getCommand(pAdminCommand).setExecutor(adminCommands);
-    	getCommand(pAdminCommand).setTabCompleter(adminCommands);
+    	if(pAdminCommand != ""){
+        	debug("Implementing adminCommands...");
+        	AdminCommand adminCommands = new AdminCommand(this);
+        	getCommand(pAdminCommand).setExecutor(adminCommands);
+        	getCommand(pAdminCommand).setTabCompleter(adminCommands);
+    	}
     	
-    	debug("Preparing the baseFood scoreboard...");
-    	setupScoreboard();
+    	if(pFoodCommand != ""){
+    		debug("Implementing foodCommands...");
+    	}
+    	
+    	if(pFoodsCommand != ""){
+    		debug("Implementing foodsCommand...");
+    	}
+    		
+    	
     	//Done!
     	cm("Hunger is now a thing of the past!");
     }
     
+    /**
+     * Called when kFood stops.
+     */
     @Override
     public void onDisable() {
     	cm("Don't forget your sandwich!");
@@ -93,82 +148,172 @@ public class kFood extends JavaPlugin{
     
     /***
      * (re)load config file.
+     * @return true, if all values were correctly loaded in.
      */
-    public void loadFromConfig(){
-		//Load the config file and all the values.
-    	saveDefaultConfig();
-    	reloadConfig();
-		DEBUG = getConfig().getBoolean("debug");
-		debug("DEBUG enabled!");
-		
-		debug("Getting main settings...");
-		defaultFood = getConfig().getInt("default-food");
-		debug("defaultFood", Integer.toString(defaultFood));
-		potionMechanics = getConfig().getBoolean("potion-mechanics");
-		debug("potionMechanics", Boolean.toString(potionMechanics));
-		
-		debug("Getting Custom Item settings...");
-		allowCustom = getConfig().getBoolean("allow-custom");
-		debug("allowCustom", Boolean.toString(allowCustom));
-		detectAnvil = getConfig().getBoolean("detect-anvil");
-		debug("detectAnvil", Boolean.toString(detectAnvil));
-		revertAnvil = getConfig().getBoolean("revert-anvil");
-		debug("revertAnvil", Boolean.toString(revertAnvil));
-		
-		debug("Getting Effects settings...");
-		potionEffects = getConfig().getBoolean("potion-effects");
-		debug("potionEffects", Boolean.toString(potionEffects));
-		burbEffect = getConfig().getBoolean("burb-effect");
-		debug("burbEffect", Boolean.toString(burbEffect));
-		
-		debug("Loading foods...");
-		getConfig().getConfigurationSection("foods").getValues(false).forEach(
-			(k,v) -> {
-				addFood(k.toString(), FoodType.CONSUMABLE, new Double(v.toString()));
-				debug(k.toString(), v.toString());
-			});
-		
-		debug("Loading instant foods...");
-		getConfig().getConfigurationSection("instant-foods").getValues(false).forEach(
-				(k,v) -> {
-					addFood(k.toString(), FoodType.INSTANT, new Double(v.toString()));
-					debug(k.toString(), v.toString());
-				});
-		
-		debug("Getting Misc values...");
-		cakeHeal = getConfig().getDouble("cake");
-		debug("cakeHeal", cakeHeal.toString());
+    public boolean loadFromConfig(){
+    	try{
+    		//Load the config file and all the values.
+        	saveDefaultConfig();
+        	reloadConfig();
+    		DEBUG = getConfig().getBoolean("debug");
+    		debug("DEBUG enabled!");
+    		
+    		debug("Getting main settings...");
+    		defaultFood = getConfig().getInt("default-food");
+    		debug("defaultFood", Integer.toString(defaultFood));
+    		potionMechanics = getConfig().getBoolean("potion-mechanics");
+    		debug("potionMechanics", Boolean.toString(potionMechanics));
+    		
+    		debug("Getting Custom Item settings...");
+    		allowCustom = getConfig().getBoolean("allow-custom");
+    		debug("allowCustom", Boolean.toString(allowCustom));
+    		detectAnvil = getConfig().getBoolean("detect-anvil");
+    		debug("detectAnvil", Boolean.toString(detectAnvil));
+    		revertAnvil = getConfig().getBoolean("revert-anvil");
+    		debug("revertAnvil", Boolean.toString(revertAnvil));
+    		
+    		debug("Getting Effects settings...");
+    		potionEffects = getConfig().getBoolean("potion-effects");
+    		debug("potionEffects", Boolean.toString(potionEffects));
+    		burbEffect = getConfig().getBoolean("burb-effect");
+    		debug("burbEffect", Boolean.toString(burbEffect));
+    		
+    		debug("Loading foods...");
+    		getConfig().getConfigurationSection("foods").getValues(false).forEach(
+    			(k,v) -> {
+    				addFood(k.toString(), FoodType.CONSUMABLE, new Double(v.toString()));
+    				debug(k.toString(), v.toString());
+    			});
+    		
+    		debug("Loading instant foods...");
+    		getConfig().getConfigurationSection("instant-foods").getValues(false).forEach(
+    				(k,v) -> {
+    					addFood(k.toString(), FoodType.INSTANT, new Double(v.toString()));
+    					debug(k.toString(), v.toString());
+    				});
+    		
+    		debug("Getting Misc values...");
+    		cakeHeal = getConfig().getDouble("cake");
+    		debug("cakeHeal", cakeHeal.toString());
+    		returnBowl = getConfig().getStringList("return-bowl");
+    		debug("returnBowl", returnBowl.toString());
+    		
+    		return true;
+    	}catch (Exception e){
+    		return false;
+    	}
     }
     
     /**
-     * Flushes the foods and values in memory to the config.yml.
+     * Deletes all foods in the config.yml and saves all foods present in {@link #foods} and {@link #instantFoods} to config. 
+     * @return true, if all operations were successful.
      */
-    public void saveToConfig(){
-    	debug("Saving foods to file...");
-    	//We don't need to do casting here, yay!
-    	getConfig().createSection("foods", foods);
-    	debug("Consumable foods set.");
-    	getConfig().createSection("instant-foods", instantFoods);
-    	debug("instantFoods saved.");
-    	//TODO HEEah..
-    	debug("Config saved!");
+    public boolean saveFoodsToConfig(){
+    	debug("Saving foods to config...");
+    	int operationsSuccessful = 0;
+    	try {
+        	//Read the config in.
+        	Path configPath = Paths.get(getDataFolder() + "/config.yml");
+			List<String> configLines = new ArrayList<>(Files.readAllLines(configPath));
+			debug("Read " + configLines.size() + " lines of config.");
+			
+			debug("Removing all foods currently in config...");
+			//Operation 0: remove all foods present (only the foods start with just a " ").
+			for(Iterator<String> lineIterator = configLines.iterator(); lineIterator.hasNext();){
+				String line = lineIterator.next();
+				if(line.startsWith(" ") && line.contains(":")) {
+					debug("Removed line: '" + line + "'.");
+					lineIterator.remove();
+				}
+			}
+			
+			//Operation 1: add all foods.
+			String foodLine = "foods:";
+			if (configLines.contains(foodLine)){
+				int startIndex = configLines.indexOf(foodLine) + 1;
+				debug("Adding foods from line " + startIndex + ".");
+				//We want the hashmap's optimization, but when going to print we'd like the order of a TreeMap.
+				Map<String, Double> sortedFoods = new TreeMap<>(foods);
+				List<String> sortedFoodKeys = new ArrayList<>(sortedFoods.keySet());
+				//We cycle through it the other way around because adding will shift previous elements down.
+				for(int i = sortedFoodKeys.size() - 1;  i >= 0; i--){
+					String currentKey = sortedFoodKeys.get(i);
+					String lineToAdd = " " + currentKey + ": " + sortedFoods.get(currentKey);
+					debug("Added line: '" + lineToAdd + "'");
+					configLines.add(startIndex, lineToAdd);
+				}operationsSuccessful++;
+			}
+			
+			//Operation 2: add all instantFoods
+			String instantFoodLine = "instant-foods:";
+			if(configLines.contains(instantFoodLine)){
+				int startIndex = configLines.indexOf(instantFoodLine) + 1;
+				debug("Adding instantFoods from line " + startIndex + ".");
+				//We want the hashmap's optimization, but when going to print we'd like the order of a TreeMap.
+				Map<String, Double> sortedInstantFoods = new TreeMap<>(instantFoods);
+				List<String> sortedInstantFoodKeys = new ArrayList<>(sortedInstantFoods.keySet());
+				//We cycle through it the other way around because adding will shift previous elements down.
+				for (int i = sortedInstantFoodKeys.size() - 1; i >= 0; i--){
+					String currentKey = sortedInstantFoodKeys.get(i);
+					String lineToAdd = " " + currentKey + ": " + sortedInstantFoods.get(currentKey);
+					debug("Added: '" + lineToAdd + "'");
+					configLines.add(startIndex, lineToAdd);
+				}operationsSuccessful++;
+			}
+			
+			//Finally, rewrite config.yml
+			Files.write(configPath, configLines); operationsSuccessful++;
+			debug("Config saved!");
+			
+		} catch (Exception e) {}
+    	
+    	//If everything went according to plan, operationsSuccessful should be 2.
+    	if(operationsSuccessful == 3){
+    		return true;
+    	}
+    	
+    	return false;
     }
     
     /**
      * Load in plugin commands and name from the plugin.yml inside the jar.
+     * @return true, if the operation was successful.
      */
-    private void loadPluginValues(){
-    	pVersion = plugin.getDescription().getVersion();
-    	pName = plugin.getDescription().getName();
-    	pNameSend = "[" + ChatColor.DARK_RED + pName + ChatColor.RESET + "] ";
-    	pAdminCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
-    	pAuthors = StringUtils.join(plugin.getDescription().getAuthors(), ", ");
+    private boolean loadPluginValues(){
+    	try{
+        	pVersion = plugin.getDescription().getVersion();
+        	pName = plugin.getDescription().getName();
+        	pNameSend = "[" + ChatColor.DARK_RED + pName + ChatColor.RESET + "] ";
+        	
+        	//Safe way of getting and setting the commands, so they can be disabled or changed in plugin.yml
+        	pCommands = new ArrayList<>(plugin.getDescription().getCommands().keySet());
+        	for(int i = 0;  i < pCommands.size(); i++){
+        		switch(i){
+        		case 0:
+        			pAdminCommand = pCommands.get(i);
+        		break;
+        		case 1:
+        			pFoodCommand = pCommands.get(i);
+        		break;
+        		case 2:
+        			pFoodsCommand = pCommands.get(i);
+        		break;
+        		}
+        	}
+        	
+        	pAdminCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
+        	pAuthors = StringUtils.join(plugin.getDescription().getAuthors(), ", ");
+        	return true;
+    	}catch (Exception e){
+    		return false;
+    	}
     }
     
     /***
      * Prepare reflection for safe item names.
+     * @return true, if all methods have successfully been reflected. 
      */
-    private void prepareReflection(){
+    private boolean prepareReflection(){
     	debug("Preparing reflection...");
     	try {
     		//CraftItem class is easy to get because we can call getServer();
@@ -200,26 +345,32 @@ public class kFood extends JavaPlugin{
 		} catch (ClassNotFoundException e) {}
     	//If there is a method or class not found we just want to quit, because we cannot operate without getting the safe item names.
     	if(craftItemStackAsNMSCopy == null || craftItemStackGetName == null){
-    		cm(ChatColor.RED + "Fatal error during reflecting! Are the names of some core classes or methods changed?");
-    		Bukkit.getPluginManager().disablePlugin(plugin);
+    		return false;
+    	}else{
+    		return true;
     	}
     }
     
     /**
      * Gets or creates the baseFood dummy objective.
+     * @return if the food objective in the mainScoreboard has either been found or created.
      */
-    private void setupScoreboard(){
+    private boolean setupScoreboard(){
+    	debug("Preparing the baseFood scoreboard...");
     	ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
     	Scoreboard mainScoreboard = scoreboardManager.getMainScoreboard();
     	for(Objective o : mainScoreboard.getObjectives()){
     		if(o.getName().matches("food")){
     			foodObjective = o;
     			debug("Dummy objective baseFood found!");
-    			return;
+    			return true;
     		}
     	}
     	foodObjective = mainScoreboard.registerNewObjective("food", "dummy");
     	debug("Created new dummy objective: food.");
+    	if(mainScoreboard.getObjectives().contains(foodObjective)) return true;
+    	
+    	return false;
     }
     
     //=====================================================\\
@@ -229,7 +380,7 @@ public class kFood extends JavaPlugin{
     /**
      * Uses reflection to get the display name. (Cause only craftbukkit has it :S)
      * @param i
-     * @return
+     * @return the displayName as NMS sees it.
      */
     public String craftDisplayName(ItemStack i){
     	try {
@@ -243,7 +394,7 @@ public class kFood extends JavaPlugin{
     /**
      * Use reflection to get a CraftItemStack as object.
      * @param i
-     * @return
+     * @return craftItemStack based on bukkit's ItemStack.
      */
     public Object getReflectCraftItemStack(ItemStack i) {
     	try {
@@ -298,7 +449,7 @@ public class kFood extends JavaPlugin{
     /**
      * Crude (java 8) function to get a string List of the names in an Enum.
      * @param e
-     * @return
+     * @return a list from String[] from the names of an Enum.
      */
     public List<String> enumNameList(Class<? extends Enum<?>> e) {
         return Arrays.asList(Arrays.stream(e.getEnumConstants()).map(Enum::name).toArray(String[]::new));
@@ -356,51 +507,77 @@ public class kFood extends JavaPlugin{
     /**
      * Updates the player's food level.
      * @param p
+     * @return true, if the player's foodLevel or saturation had to be updated.
      */
-    public void updateFoodLevel(Player p){
+    public boolean updateFoodLevel(Player p){
     	int foodToUpdate = getFoodLevel(p);
 		if(p.getFoodLevel() != foodToUpdate || p.getSaturation() != foodToUpdate){
 			p.setFoodLevel(foodToUpdate);
 			p.setSaturation(foodToUpdate);
 			debug("Updated food and saturation of " + p.getName() + " to " + foodToUpdate);
+			return true;
 		}
+		return false;
     }
     
     /**
-     * Sets the food of a player.
+     * Sets the food of a player using playerName.
      * @param p
      * @param baseFood
+     * @return true, if the player's food level has changed.
      */
-    public void setFoodLevel (Player p, int food){
-    	String playerName = p.getName();
-    	foodObjective.getScore(playerName).setScore(food);
-    	debug(playerName + " now has a food of " + food + ".");
+    public boolean setFoodLevel (String playerName, int foodLevel){
+    	if(foodObjective.getScore(playerName).getScore() != foodLevel){
+        	foodObjective.getScore(playerName).setScore(foodLevel);
+        	debug(playerName + " now has a food of " + foodLevel + ".");
+        	return true;
+    	}
+    	debug(playerName + " still has a food of " + foodLevel + ".");
+    	return false;
+    }
+    
+    /**
+     * Sets the food of a player using player.
+     * @param p
+     * @param baseFood
+     * @return true, if the player's food level has changed.
+     */
+    public boolean setFoodLevel (Player p, int foodLevel){
+    	return setFoodLevel(p.getName(), foodLevel);
     }
     
     /***
-     * Resets the player's food to 0 to symbolize the default-food.
-     * @param p
+     * Resets the player's food to 0 to symbolize the default-food using playerName.
+     * @param playerName
+     * @return true, if the player's food level is changed.
      */
-    public void resetFoodLevel (Player p){
-    	String playerName = p.getName();
-    	foodObjective.getScore(playerName).setScore(0);
-    	debug(playerName + " now has a food of 0; symbolizes default: " + defaultFood + ".");
+    public boolean resetFoodLevel (String playerName){
+    	debug("To symbolize default: " + defaultFood + ",");
+    	return setFoodLevel(playerName, 0);
+    }
+    
+    /***
+     * Resets the player's food to 0 to symbolize the default-food using player.
+     * @param playerName
+     * @return true, if the player's food level is changed.
+     */
+    public boolean resetFoodLevel (Player p){
+    	return resetFoodLevel(p.getName());
     }
     
     /**
-     * Gets the food of a player from the scoreboard.
+     * Gets the foodLevel of a player from the scoreboard using playerName.
      * Marks it with 0 to symbolize default-food if no score has been set.
-     * @param p
+     * @param playerName
      * @return the foodLevel of a player.
      */
-    public int getFoodLevel (Player p){
-    	String playerName = p.getName();
+    public int getFoodLevel (String playerName){
     	int food = foodObjective.getScore(playerName).getScore();
     	
     	//Since commandBlocks or other plugins may use the scoreboard to alter this at any time, check for faults.
 		if(food < 0 || food > 20){
 			cm(ChatColor.RED + "ERROR: " + playerName + " has an illigal food of " + food + ", resetting it to 0...");
-			resetFoodLevel(p);
+			resetFoodLevel(playerName);
 			food = foodObjective.getScore(playerName).getScore();
 		}
 		
@@ -409,6 +586,16 @@ public class kFood extends JavaPlugin{
 			return plugin.defaultFood;
 		}
     	return foodObjective.getScore(playerName).getScore();
+    }
+    
+    /**
+     * Gets the foodLevel of a player from the scoreboard using player.
+     * Marks it with 0 to symbolize default-food if no score has been set.
+     * @param p
+     * @return the foodLevel of a player.
+     */
+    public int getFoodLevel (Player p){
+    	return getFoodLevel(p.getName());
     }
     
     /*
@@ -420,22 +607,28 @@ public class kFood extends JavaPlugin{
      * Damage can be dealt by add negatively.
      * @param p
      * @param healthToAdd
+     * @return true, if the player's health has been changed.
      */
-    public void addHealth (Player p, Double healthToAdd){
+    public boolean addHealth (Player p, Double healthToAdd){
     	if(healthToAdd > 0){
     		regenPlayer(p, healthToAdd);
+    		return true;
     	}else if(healthToAdd < 0){
     		//-healthToAdd is health to subtract! :)
     		damagePlayer(p, -healthToAdd);
+    		return true;
     	}
+    	return false;
     }
     
     /**
      * Heals a player with effect based on the config. 
      * @param p
      * @param toHeal
+     * @return the ticks Regeneration II is given. <br>
+     * 0 if the config doesn't call for potionMechanics.
      */
-    public void regenPlayer(Player p, Double toHeal){
+    public int regenPlayer(Player p, Double toHeal){
     	if(!potionMechanics){
         	Double pHealth = p.getHealth();
         	Double pMaxHealth = p.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
@@ -449,11 +642,13 @@ public class kFood extends JavaPlugin{
         		p.setHealth(pMaxHealth);
         		debug("Healed " + p.getName() + " to maximum health.");
         	}
+        	return 0;
     	}else{
     		//Regeneration II heals half a heart approximately 1.25 seconds (25 ticks).
     		int ticksToHeal = (int) Math.ceil(toHeal * 25); 
-    		debug("Applying regeneration to " + p.getName() + " for " + ticksToHeal + " ticks.");
     		p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, ticksToHeal, 1));
+    		debug("Applied Regeneration II to " + p.getName() + " for " + ticksToHeal + " ticks.");
+    		return ticksToHeal;
     	}
     }
     
@@ -461,25 +656,30 @@ public class kFood extends JavaPlugin{
      * Damages a player with effect based on config.
      * @param p
      * @param damage
+     * @return the ticks Poison II is given. <br>
+     * 0 if the config doesn't call for potionMechanics
      */
-    public void damagePlayer(Player p, Double damage){
+    public int damagePlayer(Player p, Double damage){
 		if(!potionMechanics){
 			//Poison I is applied just long enough for the awful effect.
 	    	if(potionEffects) p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 20, 0));
 	    	//Damage the player.
 	    	p.damage(damage);
-	    	debug("Applied " + damage + " to " + p.getName());
+	    	debug("Applied " + damage + " damage to " + p.getName());
+	    	return 0;
 		}else{
-			//Poison II damages half a heart every 0.5 seconds (10 ticks). Round it up above, make sure we get the full damage.
+			//Poison II damages about half a heart every 0.6 seconds (12 ticks). Round it up above, make sure we get the full damage.
 			int ticksToPoison = (int) Math.ceil(damage * 12); 
-			debug("Applying poisen to " + p.getName() + " for " + ticksToPoison + " ticks.");
 			p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, ticksToPoison, 1));
+			debug("Applied Poison II to " + p.getName() + " for " + ticksToPoison + " ticks.");
+			return ticksToPoison;
 		}
     }
     
     /*
      * === Foods ===
      */
+    
     
     /**
      * Gets foodType based on a (safe) ItemName.
@@ -542,11 +742,40 @@ public class kFood extends JavaPlugin{
     }
     
     /**
+     * Check if an item should give back a bowl.
+     * @param name The ItemName to check.
+     * @return if the food should return a bowl.
+     */
+    public boolean returnsBowl (String name){
+    	for(String returnBowlName : returnBowl){
+    		if(name.contains(returnBowlName)) return true;
+    	}
+    	return false;
+    }
+    
+    /**
+     * Check if an item should give back a bowl.
+     * @param i The ItemStack to check.
+     * @return if the food should return a bowl.
+     */
+    public boolean returnsBowl (ItemStack i){
+    	return returnsBowl(getSafeFoodName(i));
+    }
+    
+    /**
+     * Simple function to get a bowl.
+     * @return a new simple bowl ItemStack.
+     */
+    public ItemStack bowl(){
+    	return new ItemStack(Material.BOWL);
+    }
+    
+    /**
      * Adds a new food using a (safe) name.<br>
      * <br>
      * If you want to register a new food,
      * it's better to check if getFoodType == FoodType.NON in onEnable()
-     * and call the saveConfig function.
+     * and call {@link #saveFoodsToConfig()},
      * so the food is saved on file and can be edited by the serverowner. <br>
      * <br>
      * If you want to forcefully decide the halfHeartsToHeal or foodType you need to call this function every time in when your plugin is enabled.
@@ -576,7 +805,7 @@ public class kFood extends JavaPlugin{
      * <br>
      * If you want to register a new food,
      * it's better to check if getFoodType == FoodType.NON in onEnable()
-     * and call {@link saveFoodsToConfig()},
+     * and call {@link #saveFoodsToConfig()},
      * so the food is saved on file and can be edited by the serverowner. <br>
      * <br>
      * If you want to forcefully decide the halfHeartsToHeal you need to call this function every time in when your plugin is enabled.
@@ -594,7 +823,7 @@ public class kFood extends JavaPlugin{
      * Sets the value of a food using a (safe) name. <br>
      * <br>
      * If you want this value to stick (save to config), be sure to also call
-     * {@link saveFoodsToConfig()}.
+     * {@link #saveFoodsToConfig()}.
      * @param i
      * @param foodType
      * @param halfHeartsToHeal
@@ -616,7 +845,7 @@ public class kFood extends JavaPlugin{
      * Sets the value of a food using an ItemStack. <br>
      * <br>
      * If you want this value to stick (save to config), be sure to also call
-     * {@link saveFoodsToConfig()}.
+     * {@link #saveFoodsToConfig()}.
      * @param i
      * @param foodType
      * @param halfHeartsToHeal
@@ -625,7 +854,5 @@ public class kFood extends JavaPlugin{
     public boolean setFood (ItemStack i, Double halfHeartsToHeal){
     	return setFood(getSafeFoodName(i), halfHeartsToHeal);
     }
-    
-    
     
 }

@@ -6,14 +6,13 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
-
-import net.md_5.bungee.api.ChatColor;
 
 /***
  * Class that handles all kFood commands.
@@ -81,105 +80,6 @@ public class AdminCommand implements CommandExecutor, TabCompleter{
 					s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Level" + ChatColor.RESET + " ===========");
 				}
 			break;
-			case "food":
-				if(args.length > 1){
-					switch (args[1].toLowerCase()){
-					case "set":
-						if(args.length > 2){
-							if(args.length > 3){
-								try{
-									if(plugin.setFood(args[2], Double.parseDouble(args[3]))){
-										plugin.saveToConfig();
-										s.sendMessage(plugin.pNameSend + ChatColor.YELLOW + args[2] + ChatColor.RESET + " now heals " + ChatColor.YELLOW + args[3] + ChatColor.RESET + " half heart(s).");
-									}else{
-										s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[2] + ChatColor.RESET + " doesn't appear to be a food.");
-									}
-								}catch (NumberFormatException e) {
-									s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[3] + ChatColor.RESET + " is not a number!");	
-								}
-							}else{
-								if (s instanceof Player){
-									Player p = (Player) s;
-									String itemInHand = plugin.getSafeFoodName(p.getInventory().getItemInMainHand());
-									try{
-										if(plugin.setFood(itemInHand, Double.parseDouble(args[2]))){
-											plugin.saveToConfig();
-											s.sendMessage(plugin.pNameSend + ChatColor.YELLOW + itemInHand + ChatColor.RESET + " now heals " + ChatColor.YELLOW + args[3] + ChatColor.RESET + " half heart(s).");
-										}else{
-											s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + itemInHand + ChatColor.RESET + " doesn't appear to be a food.");
-										}
-									}catch (NumberFormatException e) {
-										s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[2] + ChatColor.RESET + " is not a number!");	
-									}
-								}else{
-									s.sendMessage(plugin.pNameSend + "? You are not a player, so you need to specify a name aswell.");
-								}
-							}
-						}else{
-							s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Setting Food" + ChatColor.RESET + " ===========");
-							s.sendMessage("/" + cmdN + " food set LEVEL");
-							s.sendMessage(ChatColor.YELLOW + "Sets the halfHeartsToHeal of the item in hand.");
-							s.sendMessage("/" + cmdN + " food set NAME LEVEL");
-							s.sendMessage(ChatColor.YELLOW + "Sets the halfHeartsToHeal of an item based on name.");
-							s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Setting Food" + ChatColor.RESET + " ===========");
-						}
-					break;
-					case "add":
-						if(args.length > 3){
-							if(args.length > 4){
-								try{
-									if(plugin.addFood(args[2], FoodType.valueOf(args[3].toUpperCase().trim()), Double.parseDouble(args[4]))){
-										plugin.saveToConfig();
-										s.sendMessage(plugin.pNameSend + ChatColor.YELLOW + args[3] + "-food " + ChatColor.GREEN + args[2] + ChatColor.RESET + " is added and gives " + ChatColor.YELLOW + args[4] + ChatColor.RESET + " half heart(s).");
-									}else{
-										s.sendMessage(plugin.pNameSend + "? something went wrong... Enable debug and check the log?");
-									}
-								}catch (NumberFormatException e) {
-									s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[4] + ChatColor.RESET + " is not a number!");
-								}catch (IllegalArgumentException e){
-									s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[3] + ChatColor.RESET + " is not a valid foodType!");
-								}
-							}else{
-								if (s instanceof Player){
-									Player p = (Player) s;
-									String itemInHand = plugin.getSafeFoodName(p.getInventory().getItemInMainHand());
-									try{
-										if(plugin.addFood(itemInHand, FoodType.valueOf(args[2].toUpperCase().trim()), Double.parseDouble(args[3]))){
-											plugin.saveToConfig();
-											s.sendMessage(plugin.pNameSend + ChatColor.YELLOW + args[2] + "-food " + ChatColor.GREEN + itemInHand + ChatColor.RESET + " is added and gives " + ChatColor.YELLOW + args[3] + ChatColor.RESET + " half heart(s).");
-										}else{
-											s.sendMessage(plugin.pNameSend + "? something went wrong... Enable debug and check the log?");
-										}
-									}catch (NumberFormatException e) {
-										s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[3] + ChatColor.RESET + " is not a number!");
-									}catch (IllegalArgumentException e){
-										s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[2] + ChatColor.RESET + " is not a valid foodType!");
-									}
-								}else{
-									s.sendMessage(plugin.pNameSend + "? You are not a player, so you need to specify a name aswell.");
-								}
-							}
-						}else{
-							s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Adding Food" + ChatColor.RESET + " ===========");
-							s.sendMessage("/" + cmdN + " food add TYPE LEVEL");
-							s.sendMessage(ChatColor.YELLOW + "Adds the item in hand to either the foods or instantFoods with a a certain halfHeartsToHeal.");
-							s.sendMessage("/" + cmdN + " food add NAME TYPE LEVEL");
-							s.sendMessage(ChatColor.YELLOW + "Adds an item based on name to either the foods or instantFoods with a a certain halfHeartsToHeal.");
-							s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Adding Food" + ChatColor.RESET + " ===========");
-						}
-					break;
-					default:
-						s.sendMessage("? Use " + ChatColor.YELLOW + "/" +cmdN + " food" + ChatColor.RESET + " for a list options");
-					break;
-					}
-				}else{
-					s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Food" + ChatColor.RESET + " ===========");
-					s.sendMessage("/" + cmdN + " food       :" + ChatColor.YELLOW + " Shows this help menu.");
-					s.sendMessage("/" + cmdN + " food set   :" + ChatColor.YELLOW + " Set the level of a food.");
-					s.sendMessage("/" + cmdN + " food add   :" + ChatColor.YELLOW + " Add a food.");
-					s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help Food" + ChatColor.RESET + " ===========");
-				}
-			break;
 			case "help":
 			case "?":
 				s.sendMessage("=========== " + ChatColor.RED + plugin.pName + " Help" + ChatColor.RESET + " ===========");
@@ -216,28 +116,6 @@ public class AdminCommand implements CommandExecutor, TabCompleter{
 					//Null so default option (show player names) will be used.
 					return null;
 				}
-			case "food":
-				switch(args.length){
-				case 2:
-					//We either want the player to add or set. Might as well complete it for them.
-					StringUtil.copyPartialMatches(args[1], Arrays.asList(new String[]{"add", "set"}), completeTo);
-					Collections.sort(completeTo);
-					return completeTo;
-				case 3:
-					if(args[1].toLowerCase() == "set"){
-						//The sender is either going to pick a name or value. We can't guess values, so we should return all item names.
-						StringUtil.copyPartialMatches(args[2], plugin.foods.keySet(), completeTo);
-						StringUtil.copyPartialMatches(args[2], plugin.instantFoods.keySet(), completeTo);
-						Collections.sort(completeTo);
-						return completeTo;
-					}else if (args[1].toLowerCase() == "add"){
-						//The sender is either going to specify a name we can't know because its new, or a type. We'll tab out the type for them.
-						StringUtil.copyPartialMatches(args[2], plugin.enumNameList(FoodType.class), completeTo);
-						Collections.sort(completeTo);
-						return completeTo;
-					}
-				}
-				return null;
 			default:
 				//Auto complete, sorted using the first (uncomplete) argument.
 				StringUtil.copyPartialMatches(args[0], mainSubCmds, completeTo);
