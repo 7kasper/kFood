@@ -1,70 +1,48 @@
 #========kFood========#
-#       7kasper       #
+#      @7kasper       #
 #========kFood========#
 
 #You can edit all of this to give the plugin a different name, command, etc,
 #just make sure the syntax stays the same.
-#If this plugin helps you out, consider giving some credit ingame.
+#If this plugin helps you out and you change it's name and author, consider giving some credit ingame.
+
 name: kFood
 main: kmod.plugmod.kfood.kFood
-version: 0.7.2
+version: 0.7.3
 author: 7kasper
 commands:
  kfood:
   description: Use to manage kFood.
- food:
-  description: Gets the food value of an item.
- foods:
-  description: Gets all set foods. 
 
 permissions:
- kfood.*:
-  description: Grants access to all kFood's commands.
-  children:
-   kfood.kfood.*: true
-   kfood.food.*: true
-   kfood.foods: true
-   
- kfood.kfood.*:
-  description: Grants access to all kFood admin commands.
-  children:
-   kfood.kfood.reload: true
-   kfood.kfood.level: true
-   kfood.kfood.help: true
+ #First permission, always correlates to the reload command.
+ kfood.kfood.reload:
+  description: The permission to reload from kfood's config.
+  default: op
   
+ #Second permission, always correlates to the level command.
+ kfood.kfood.level:
+  description: The permission to change a player's foodLevel.
+  default: op
+
+ #Third permission, always correlates to the help command. 
+ kfood.kfood.help:
+  description: The permission to get a help menu displaying all admin commands of kFood.
+  default: op
+
  kfood.kfood.admin:
   description: Grants access to all kFood admin commands.
   children:
    kfood.kfood.reload: true
    kfood.kfood.level: true
    kfood.kfood.help: true
-   
- kfood.kfood.reload:
-  description: The permission to reload from kfood's config.
-  default: op
-  
- kfood.kfood.level:
-  description: The permission to change a player's foodLevel.
-  default: op
 
- kfood.kfood.help:
-  description: The permission to get a help menu displaying all admin commands of kFood.
-  default: op
-  
- kfood.food.*:
-  description: Grants access to all basic food commands.
+ kfood.kfood.*:
+  description: Grants access to all kFood admin commands.
   children:
-   kfood.food.hand: true
-   kfood.food.name: true
-
- kfood.food.hand:
-  description: The permission to get the halfHeartsToHeal of the item in hand.
-  default: true
-
- kfood.food.name:
-  description: The permission to get the halfHeartsToHeal of an item using its name.
-  default: op
-  
- kfood.foods:
-  description: The permssion to get the values of all foods.
-  default: op
+   kfood.kfood.admin: true
+   
+ kfood.*:
+  description: Grants access to all kFood's commands.
+  children:
+   kfood.kfood.*: true

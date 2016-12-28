@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="bukkitSource">
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="bukkit.jar">
 		<attributes>
-			<attribute name="ignore_optional_problems" value="true"/>
+			<attribute name="javadoc_location" value="https://hub.spigotmc.org/javadocs/bukkit/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="bukkit.jar" sourcepath="bukkitSource"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

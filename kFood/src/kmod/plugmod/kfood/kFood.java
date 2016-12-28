@@ -21,6 +21,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -59,10 +60,8 @@ public class kFood extends JavaPlugin{
 	public String pNameSend = "";
 	public String pVersion = "";
 	public String pAuthors = "";
-	public List<String> pCommands = new ArrayList<>();
 	public String pAdminCommand = "";
-	public String pFoodCommand = "";
-	public String pFoodsCommand = "";
+	public List<Permission> pPermissions = new ArrayList<>();
 	public kFood plugin;
 	
 	//Reflection stuff, will load onEnable()
@@ -119,14 +118,6 @@ public class kFood extends JavaPlugin{
         	AdminCommand adminCommands = new AdminCommand(this);
         	getCommand(pAdminCommand).setExecutor(adminCommands);
         	getCommand(pAdminCommand).setTabCompleter(adminCommands);
-    	}
-    	
-    	if(pFoodCommand != ""){
-    		debug("Implementing foodCommands...");
-    	}
-    	
-    	if(pFoodsCommand != ""){
-    		debug("Implementing foodsCommand...");
     	}
     		
     	
@@ -281,28 +272,12 @@ public class kFood extends JavaPlugin{
      */
     private boolean loadPluginValues(){
     	try{
-        	pVersion = plugin.getDescription().getVersion();
         	pName = plugin.getDescription().getName();
         	pNameSend = "[" + ChatColor.DARK_RED + pName + ChatColor.RESET + "] ";
-        	
-        	//Safe way of getting and setting the commands, so they can be disabled or changed in plugin.yml
-        	pCommands = new ArrayList<>(plugin.getDescription().getCommands().keySet());
-        	for(int i = 0;  i < pCommands.size(); i++){
-        		switch(i){
-        		case 0:
-        			pAdminCommand = pCommands.get(i);
-        		break;
-        		case 1:
-        			pFoodCommand = pCommands.get(i);
-        		break;
-        		case 2:
-        			pFoodsCommand = pCommands.get(i);
-        		break;
-        		}
-        	}
-        	
-        	pAdminCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
+        	pVersion = plugin.getDescription().getVersion();
+        	pPermissions = plugin.getDescription().getPermissions();
         	pAuthors = StringUtils.join(plugin.getDescription().getAuthors(), ", ");
+        	pAdminCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
         	return true;
     	}catch (Exception e){
     		return false;
