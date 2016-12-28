@@ -12,3 +12,4 @@ plugins
 serverowner
 yay
 enum
+kfood
