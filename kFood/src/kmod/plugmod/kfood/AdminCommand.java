@@ -52,18 +52,19 @@ public class AdminCommand implements CommandExecutor, TabCompleter{
 				if(s.hasPermission(plugin.pPermissions.get(1))){
 					if(args.length > 1){
 						for(Player subject : Bukkit.getOnlinePlayers()){
-							if(subject.getName() == args[1]){
+							String subjectName = subject.getName().trim();
+							if(subjectName.equalsIgnoreCase(args[1].trim())){
 								if(args.length > 2){
 									try{
-										plugin.setFoodLevel(subject, Integer.parseInt(args[2]));
+										plugin.setFoodLevel(subjectName, Integer.parseInt(args[2]));
 										plugin.updateFoodLevel(subject);
-										s.sendMessage(plugin.pNameSend + ChatColor.GREEN + subject.getName() + ChatColor.RESET + " now has a food level of: " + ChatColor.YELLOW + args[2] + ChatColor.RESET + ".");
+										s.sendMessage(plugin.pNameSend + ChatColor.GREEN + subjectName + ChatColor.RESET + " now has a food level of: " + ChatColor.YELLOW + args[2] + ChatColor.RESET + ".");
 										return true;
 									}catch (NumberFormatException e) {
 										if(args[2].equalsIgnoreCase("clear")){
-											plugin.resetFoodLevel(subject);
+											plugin.resetFoodLevel(subjectName);
 											plugin.updateFoodLevel(subject);
-											s.sendMessage(plugin.pNameSend + ChatColor.GREEN + subject.getName() + ChatColor.RESET + " now has the default-food level again. (" + ChatColor.YELLOW + plugin.defaultFood + ChatColor.RESET + ")");
+											s.sendMessage(plugin.pNameSend + ChatColor.GREEN + subjectName + ChatColor.RESET + " now has the default-food level again. (" + ChatColor.YELLOW + plugin.defaultFood + ChatColor.RESET + ")");
 											return true;
 										}else{
 								            s.sendMessage(plugin.pNameSend + "? " + ChatColor.YELLOW + args[2] + ChatColor.RESET + " is not a number!");
@@ -72,7 +73,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter{
 							        }
 								}else{
 									plugin.updateFoodLevel(subject);
-									s.sendMessage(plugin.pNameSend + ChatColor.GREEN + subject.getName() + ChatColor.RESET + " has a food level of: " + ChatColor.YELLOW + plugin.getFoodLevel(subject) + ChatColor.RESET + ".");
+									s.sendMessage(plugin.pNameSend + ChatColor.GREEN + subjectName + ChatColor.RESET + " has a food level of: " + ChatColor.YELLOW + plugin.getFoodLevel(subjectName) + ChatColor.RESET + ".");
 									return true;
 								}
 							}
