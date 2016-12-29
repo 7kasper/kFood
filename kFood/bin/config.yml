@@ -10,13 +10,13 @@
 
 #========MAIN========#
 #Run the plugin in debug mode?
-debug: true
+debug: false
 
 #Sets the default food value. (1-20)
 #You can affect the diffculty of minecraft a bit here.
 #If set below 7, players cannot run.
 #If set above 17, players will always regenerate health.
-default-food: 6
+default-food: 17
 #Other plugins, admins or command blocks can change the default-food per player.
 
 #Use potion mechanics for healing? (Regeneration II and Poison II)
@@ -56,34 +56,40 @@ burb-effect: true
 #Usage:
 # a_name: halfhearts to heal.
 foods:
- apple: 2.0
- baked_potato: 3.0
- beetroot: 1.0
- beetroot_soup: 6.0
- bread: 3.0
- carrot_item: 2.0
- cooked_chicken: 5.0
- cooked_fish: 5.0
- cooked_mutton: 6.0
- cooked_beef: 9.0
- cooked_rabbit: 6.0
- cookie: 2.0
+ Apple: 2.0
+ Baked Potato: 3.0
+ Beetroot: 1.0
+ Beetroot Soup: 6.0
+ Bread: 3.0
+ Carrot: 2.0
+ Chorus Fruit: 4.0
+ Clownfish: 1.0
+ Cooked Chicken: 5.0
+ Cooked Fish: 5.0
+ Cooked Mutton: 6.0
+ Cooked Porkchop: 8.0
+ Cooked Rabbit: 6.0
+ Cooked Salmon: 6.0
+ Cookie: 2.0
  Golden Apple: 4.0
- grilled_pork: 9.0
- melon: 1.0
- mushroom_soup: 6.0
- mutton: 2.0
- poisonous_potato: 2.0
- potato_item: 1.0
- pork: 3.0
- pumpkin_pie: 8.0
- rabbit_stew: 9.0
+ Golden Carrot: 6.0
+ Melon: 1.0
+ Mushroom Stew: 6.0
+ Poisonous Potato: -3.0
+ Potato: 1.0
+ Pufferfish: -1.0
+ Pumpkin Pie: 8.0
+ Rabbit Stew: 9.0
  Raw Beef: 3.0
- raw_chicken: -2.0
- raw_fish: 2.0
- rabbit_foot: 2.0
- rotten_flesh: -1.0
- spider_eye: -1.0
+ Raw Chicken: -2.0
+ Raw Fish: 2.0
+ Raw Mutton: 2.0
+ Raw Porkchop: 3.0
+ Raw Rabbit: 2.0
+ Raw Salmon: 4.0
+ Rotten Flesh: -1.0
+ Spider Eye: -5.0
+ Steak: 8.0
  
 #Custom item examples:
 #Let's say a different plugin adds in the recipe for a sandwich,
