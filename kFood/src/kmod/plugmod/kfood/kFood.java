@@ -1,5 +1,6 @@
 package kmod.plugmod.kfood;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -119,6 +120,13 @@ public class kFood extends JavaPlugin{
         	getCommand(pAdminCommand).setExecutor(adminCommands);
         	getCommand(pAdminCommand).setTabCompleter(adminCommands);
     	}
+    	
+        try {
+            Metrics metrics = new Metrics(this);
+            metrics.start();
+        } catch (IOException e) {
+            debug("[" + ChatColor.RED + "MCSTATS" + ChatColor.RESET + "] Failed to submit the stats :-(");
+        }
     		
     	
     	//Done!
