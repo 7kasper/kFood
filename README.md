@@ -1,5 +1,5 @@
 <h1 align="center"><img src="https://raw.githubusercontent.com/7kasper/kFood/master/kFood/kFoodBanner.png" alt="kFood"/></h1>
-kFood is a standalone plugmod (plugin) that abolishes minecraft's new food system and replaces it with a customizable system that resembles the way food used to work.
+kFood is a standalone plugin that abolishes minecraft's new food system and replaces it with a customizable system that resembles the way food used to work.
 
 ## Why?
 I made this plugin to get myself familliar with bukkit again, it has been a loooonng while since I coded with it.
