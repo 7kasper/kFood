@@ -3,7 +3,7 @@ kFood is a standalone plugin that abolishes minecraft's new food system and repl
 
 ## Why?
 I made this plugin to get myself familliar with bukkit again, it has been a loooonng while since I coded with it.
-Oh and by the way, I just really didn't like the food bar :)
+Oh and by the way, I just really didn't like the food system :smile:
 
 ## Features
 - [X] Ensure players' foodLevels stay static.
