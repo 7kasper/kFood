@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -34,7 +33,6 @@ import org.bukkit.scoreboard.ScoreboardManager;
  * Main class of kFood, extends JavaPlugin.
  * Houses all API functions.
  * @author 7kasper
- *
  */
 public class kFood extends JavaPlugin{
 	
@@ -284,7 +282,7 @@ public class kFood extends JavaPlugin{
         	pNameSend = "[" + ChatColor.DARK_RED + pName + ChatColor.RESET + "] ";
         	pVersion = plugin.getDescription().getVersion();
         	pPermissions = plugin.getDescription().getPermissions();
-        	pAuthors = StringUtils.join(plugin.getDescription().getAuthors(), ", ");
+        	pAuthors = String.join(", ", plugin.getDescription().getAuthors());
         	pAdminCommand = plugin.getDescription().getCommands().entrySet().iterator().next().getKey();
         	return true;
     	}catch (Exception e){
