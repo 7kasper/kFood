@@ -347,7 +347,7 @@ public class kFood extends JavaPlugin{
     			return true;
     		}
     	}
-    	foodObjective = mainScoreboard.registerNewObjective("food", "dummy");
+    	foodObjective = mainScoreboard.registerNewObjective("food", "dummy", "food");
     	debug("Created new dummy objective: food.");
     	if(mainScoreboard.getObjectives().contains(foodObjective)) return true;
     	

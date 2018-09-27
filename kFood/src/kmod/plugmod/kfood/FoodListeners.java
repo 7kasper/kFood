@@ -105,7 +105,7 @@ public class FoodListeners implements Listener{
 	    */
 	   if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK)){
 		   if(!e.isCancelled()){
-			   if(e.getClickedBlock().getType().equals(Material.CAKE_BLOCK)){
+			   if(e.getClickedBlock().getType().equals(Material.CAKE)){
 				   plugin.debug(p.getName() + " ate a piece of cake.");
 				   plugin.addHealth(p, plugin.cakeHeal);
 			   }  
