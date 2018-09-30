@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -64,10 +65,7 @@ public class kFood extends JavaPlugin{
 	public kFood plugin;
 	
 	//Reflection stuff, will load onEnable()
-	private Class<?> craftItemStack = null;
-	private Class<?> minecraftItemStack = null;
-	private Method craftItemStackAsNMSCopy = null;
-	private Method craftItemStackGetName = null;
+	private Function<ItemStack, String> getRealName;
 	
 	//Scoreboard objective, to keep track of per player basefood.
 	private Objective foodObjective = null;
@@ -296,36 +294,39 @@ public class kFood extends JavaPlugin{
      */
     private boolean prepareReflection(){
     	debug("Preparing reflection...");
+		Class<?> minecraftItemStack = null;
+		Class<?> chatComponent = null;
     	try {
-    		//CraftItem class is easy to get because we can call getServer();
-    		String classToGet = getServer().getClass().getPackage().getName() + ".inventory.CraftItemStack";
-    		debug("Looking for CraftItemStack class at: " + classToGet + "...");
-			craftItemStack = Class.forName(classToGet);
-			debug("Reflected class, " + craftItemStack.getName() + ", successfully.");
-	        for (Method m : craftItemStack.getMethods()) {
-	            if (m.getName().equals("asNMSCopy") && m.getParameterTypes().length == 1) {
-	            	craftItemStackAsNMSCopy = m;
-	            	debug("Reflected method, " + m.getName() + ", successfully.");
-	            }
-	        }
 	        //Accurately gets the right formatted server version.
 	        String minecraftVersion = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
-	        //Points to the class we want.
-	        classToGet = "net.minecraft.server." + minecraftVersion + ".ItemStack";
+	        //Target the nms itemstack class.
+	        String classToGet = "net.minecraft.server." + minecraftVersion + ".ItemStack";
 	        debug("Looking for ItemStack class at: " + classToGet + "...");
 	        //Get the class.
 	        minecraftItemStack = Class.forName(classToGet);
 	        debug("Reflected class, " + minecraftItemStack.getName() + ", successfully.");
-	        for(Method m : minecraftItemStack.getMethods()){
-	            if (m.getName().equals("getName") && m.getParameterTypes().length == 0){
-	            	craftItemStackGetName = m;
-	            	debug("Reflected method, " + m.getName() + ", successfully.");
-	            }
-	        }
-	        
-		} catch (ClassNotFoundException e) {}
+	        //Get the proper methods.
+	        Method getNMSItem = minecraftItemStack.getMethod("fromBukkitCopy", ItemStack.class);
+	        Method getComponentName = minecraftItemStack.getDeclaredMethod("getName");
+	        //Target the nms chatComponent class.
+	        classToGet = "net.minecraft.server." + minecraftVersion + ".IChatBaseComponent";
+	        debug("Looking for ChatComponent class at: " + classToGet + "...");
+	        //Get the class.
+	        chatComponent = Class.forName(classToGet);
+	        debug("Reflected class, " + chatComponent.getName() + ", successfully.");
+	        //Get the proper method.
+	        Method getTextName = chatComponent.getDeclaredMethod("getText");
+    		getRealName = (item) -> {
+    			try {
+					return getTextName.invoke(getComponentName.invoke((getNMSItem.invoke(this, item)))).toString();
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					e.printStackTrace();
+				}
+    			return "ohCrap";
+    		};
+		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException e) {}
     	//If there is a method or class not found we just want to quit, because we cannot operate without getting the safe item names.
-    	if(craftItemStackAsNMSCopy == null || craftItemStackGetName == null){
+    	if(getRealName == null){
     		return false;
     	}else{
     		return true;
@@ -364,27 +365,8 @@ public class kFood extends JavaPlugin{
      * @return the displayName as NMS sees it.
      */
     public String craftDisplayName(ItemStack i){
-    	try {
-			return craftItemStackGetName.invoke(getReflectCraftItemStack(i)).toString();
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			e.printStackTrace();
-		}
-    	return "";
+    	return getRealName.apply(i);
     }
-    
-    /**
-     * Use reflection to get a CraftItemStack as object.
-     * @param i
-     * @return craftItemStack based on bukkit's ItemStack.
-     */
-    public Object getReflectCraftItemStack(ItemStack i) {
-    	try {
-			return craftItemStackAsNMSCopy.invoke(this, i);
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			e.printStackTrace();
-		}
-    	return null;
-    } 
     
     //=====================================================\\
     //				   Console Functions				   \\

@@ -90,6 +90,7 @@ foods:
  Rotten Flesh: -1.0
  Spider Eye: -5.0
  Steak: 8.0
+ Dried Kelp: 1.0
  
 #Custom item examples:
 #Let's say a different plugin adds in the recipe for a sandwich,
