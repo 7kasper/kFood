@@ -2,9 +2,9 @@
 #      @7kasper       #
 #========kFood========#
 
-#You can edit all of this to give the plugin a different name, command, etc,
-#just make sure the syntax stays the same.
-#If this plugin helps you out and you change it's name and author, consider giving some credit ingame.
+# You can edit all of this to give the plugin a different name, command, etc,
+# just make sure the syntax stays the same.
+# If this plugin helps you out and you change it's name and author, consider giving some credit ingame.
 
 name: kFood
 main: kmod.plugmod.kfood.kFood
@@ -16,20 +16,25 @@ commands:
   description: Use to manage kFood.
 
 permissions:
- #First permission, always correlates to the reload command.
+ # First permission, always correlates to the reload command.
  kfood.kfood.reload:
   description: The permission to reload from kfood's config.
   default: op
   
- #Second permission, always correlates to the level command.
+ # Second permission, always correlates to the level command.
  kfood.kfood.level:
   description: The permission to change a player's foodLevel.
   default: op
 
- #Third permission, always correlates to the help command. 
+ # Third permission, always correlates to the help command. 
  kfood.kfood.help:
   description: The permission to get a help menu displaying all admin commands of kFood.
   default: op
+
+ # Fourth permission, always correlates to overriding swimming with low food. 
+ kfood.kfood.overrideswim:
+  description: The permission to get a help menu displaying all admin commands of kFood.
+  default: true
 
  kfood.kfood.admin:
   description: Grants access to all kFood admin commands.
@@ -37,6 +42,7 @@ permissions:
    kfood.kfood.reload: true
    kfood.kfood.level: true
    kfood.kfood.help: true
+   kfood.kfood.overrideswim: true
 
  kfood.kfood.*:
   description: Grants access to all kFood admin commands.
