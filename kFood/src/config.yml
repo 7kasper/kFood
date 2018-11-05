@@ -63,9 +63,9 @@ foods:
  Bread: 3.0
  Carrot: 2.0
  Chorus Fruit: 4.0
- Clownfish: 1.0
+ Tropical Fish: 1.0
  Cooked Chicken: 5.0
- Cooked Fish: 5.0
+ Cooked Cod: 5.0
  Cooked Mutton: 6.0
  Cooked Porkchop: 8.0
  Cooked Rabbit: 6.0
@@ -82,7 +82,7 @@ foods:
  Rabbit Stew: 9.0
  Raw Beef: 3.0
  Raw Chicken: -2.0
- Raw Fish: 2.0
+ Raw Cod: 2.0
  Raw Mutton: 2.0
  Raw Porkchop: 3.0
  Raw Rabbit: 2.0
