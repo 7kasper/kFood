@@ -26,6 +26,7 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
@@ -35,7 +36,7 @@ import org.bukkit.scoreboard.ScoreboardManager;
  * 
  * @author 7kasper
  */
-public class kFood extends JavaPlugin{
+public class kFood extends JavaPlugin {
 	
     //=====================================================\\
     //						Variables					   \\
@@ -192,13 +193,13 @@ public class kFood extends JavaPlugin{
 
 			debug("Loading foods...");
 			getConfig().getConfigurationSection("foods").getValues(false).forEach((k, v) -> {
-				addFood(k.toString(), FoodType.CONSUMABLE, new Double(v.toString()));
+				addFood(k.toString(), FoodType.CONSUMABLE, Double.valueOf(v.toString()));
 				debug(k.toString(), v.toString());
 			});
 
 			debug("Loading instant foods...");
 			getConfig().getConfigurationSection("instant-foods").getValues(false).forEach((k, v) -> {
-				addFood(k.toString(), FoodType.INSTANT, new Double(v.toString()));
+				addFood(k.toString(), FoodType.INSTANT, Double.valueOf(v.toString()));
 				debug(k.toString(), v.toString());
 			});
 
@@ -323,27 +324,43 @@ public class kFood extends JavaPlugin{
 		debug("Preparing reflection...");
 		Class<?> minecraftItemStack = null;
 		Class<?> chatComponent = null;
+		Class<?> craftbukkitItemStack = null;
 		try {
 			// Accurately gets the right formatted server version.
 			String minecraftVersion = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",")
 					.split(",")[3];
-			// Target the nms itemstack class.
-			String classToGet = "net.minecraft.server." + minecraftVersion + ".ItemStack";
-			debug("Looking for ItemStack class at: " + classToGet + "...");
-			// Get the class.
-			minecraftItemStack = Class.forName(classToGet);
-			debug("Reflected class, " + minecraftItemStack.getName() + ", successfully.");
-			// Get the proper methods.
-			Method getNMSItem = minecraftItemStack.getMethod("fromBukkitCopy", ItemStack.class);
-			Method getComponentName = minecraftItemStack.getDeclaredMethod("getName");
 			// Target the nms chatComponent class.
-			classToGet = "net.minecraft.server." + minecraftVersion + ".IChatBaseComponent";
+			String classToGet = "net.minecraft.network.chat.IChatBaseComponent";
 			debug("Looking for ChatComponent class at: " + classToGet + "...");
 			// Get the class.
 			chatComponent = Class.forName(classToGet);
 			debug("Reflected class, " + chatComponent.getName() + ", successfully.");
 			// Get the proper method.
-			Method getTextName = chatComponent.getDeclaredMethod("getText");
+			Method getTextName = chatComponent.getDeclaredMethod("getString");
+			
+			// Target the nms itemstack class.
+//			String classToGet = "net.minecraft.server." + minecraftVersion + ".ItemStack";
+			classToGet = "net.minecraft.world.item.ItemStack";
+			debug("Looking for ItemStack class at: " + classToGet + "...");
+			// Get the class.
+			minecraftItemStack = Class.forName(classToGet);
+			debug("Reflected class, " + minecraftItemStack.getName() + ", successfully.");
+			// Get the name method based on return type.
+			Method ret = null;
+			for (Method a : minecraftItemStack.getMethods()) {
+				if (a.getReturnType().equals(chatComponent)) {
+					ret = a;
+//					break;
+				}
+			}
+			Method getComponentName = ret;
+			debug("Reflected method, " + getComponentName.getName() + " as getComponentName successfully.");
+			// Target the craftbukkit itemstack class.
+			classToGet = "org.bukkit.craftbukkit." + minecraftVersion + ".inventory.CraftItemStack";
+			debug("Looking for CraftItemStack class at: " + classToGet + "...");
+			craftbukkitItemStack = Class.forName(classToGet);
+			Method getNMSItem = craftbukkitItemStack.getDeclaredMethod("asNMSCopy", ItemStack.class);
+
 			getRealName = (item) -> {
 				try {
 					return getTextName.invoke(getComponentName.invoke((getNMSItem.invoke(this, item)))).toString();
@@ -380,7 +397,7 @@ public class kFood extends JavaPlugin{
 				return true;
 			}
 		}
-		foodObjective = mainScoreboard.registerNewObjective("food", "dummy", "food");
+		foodObjective = mainScoreboard.registerNewObjective("food", Criteria.DUMMY, "food");
 		debug("Created new dummy objective: food.");
 		if (mainScoreboard.getObjectives().contains(foodObjective))
 			return true;
@@ -706,6 +723,8 @@ public class kFood extends JavaPlugin{
 	 * @return the food type of a certain food.
 	 */
 	public FoodType getFoodType(String name) {
+		debug("Checking foodtype for " + name + ".");
+		debug(foods.containsKey("Raw Beef") ? "TRUE": "FALSE");
 		if (foods.containsKey(name))
 			return FoodType.CONSUMABLE;
 		if (instantFoods.containsKey(name))

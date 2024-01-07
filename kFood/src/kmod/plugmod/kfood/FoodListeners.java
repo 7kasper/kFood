@@ -11,6 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -62,7 +63,7 @@ public class FoodListeners implements Listener {
 			if (plugin.getFoodType(eatName) == FoodType.CONSUMABLE) {
 				Double foodToAdd = plugin.getFoodWorth(eatName, FoodType.CONSUMABLE);
 				plugin.addHealth(p, foodToAdd);
-				plugin.debug(p.getName() + " ate " + eatName + ", wich gave him " + foodToAdd + " halfhearts.");
+				plugin.debug(p.getName() + " ate " + eatName + ", which gave him " + foodToAdd + " halfhearts.");
 			} else {
 				plugin.debug(p.getName() + " ate " + eatName + " but that ain't a known food.");
 			}
@@ -125,7 +126,7 @@ public class FoodListeners implements Listener {
 		 * The cake is a special case and needs to be checked separately.
 		 */
 		if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
-			if (!e.isCancelled()) {
+			if (!e.useInteractedBlock().equals(Result.DENY)) {
 				if (e.getClickedBlock().getType().equals(Material.CAKE)) {
 					plugin.debug(p.getName() + " ate a piece of cake.");
 					plugin.addHealth(p, plugin.cakeHeal);
